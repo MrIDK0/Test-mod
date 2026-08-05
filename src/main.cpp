@@ -24,8 +24,8 @@ using namespace geode::prelude;
  *
  * struct MyMenuLayer : Modify<MyMenuLayer, MenuLayer> {};
  */
-#include <Geode/modify/MenuLayer.hpp>
-class $modify(MyMenuLayer, MenuLayer) {
+#include <Geode/modify/right-button-menu.hpp>
+class $modify(MyMenuLayer, right-button-menu) {
 	/**
 	 * Typically classes in GD are initialized using the `init` function, (though not always!),
 	 * so here we use it to add our own button to the bottom menu.
@@ -38,7 +38,7 @@ class $modify(MyMenuLayer, MenuLayer) {
 		 * We call the original init function so that the
 		 * original class is properly initialized.
 		 */
-		if (!MenuLayer::init()) {
+		if (!right-button-menu::init()) {
 			return false;
 		}
 
