@@ -24,7 +24,7 @@ using namespace geode::prelude;
  *
  * struct MyMenuLayer : Modify<MyMenuLayer, MenuLayer> {};
  */
-#include <Geode/modify/MenuLayer.hpp>
+#include <Geode/modify/PuseLayer.hpp>
 class $modify(right-button-menu, right-button-menu) {
 	/**
 	 * Typically classes in GD are initialized using the `init` function, (though not always!),
