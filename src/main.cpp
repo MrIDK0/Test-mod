@@ -134,9 +134,9 @@ public:
 // menu popup. Swap MenuLayer for another layer (e.g. PlayLayer) if
 // you'd rather have the button show up somewhere else in the game.
 // =======================================================================
-class $modify(ModMenuHook, MenuLayer) {
+class $modify(ModMenuHook, PauseLayer) {
     bool init() {
-        if (!MenuLayer::init())
+        if (!PauseLayer::init())
             return false;
 
         auto buttonSprite = ButtonSprite::create("Menu");
