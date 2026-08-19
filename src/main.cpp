@@ -1,6 +1,8 @@
 #include <Geode/Geode.hpp>
 #include <Geode/ui/Popup.hpp>
+#include <Geode/ui/Layout.hpp>
 #include <map>
+#include <string>
 #include <vector>
 
 using namespace geode::prelude;
@@ -14,13 +16,12 @@ protected:
     bool setup(std::string const& title) override {
         auto winSize = CCDirector::sharedDirector()->getWinSize();
 
-        // Title
         this->setTitle("MOD MENU");
 
-        // Main Background Box (Brown Panel)
+        // Main Background Box
         auto bg = cocos2d::extension::CCScale9Sprite::create("GJ_square01.png");
         bg->setContentSize({380.f, 210.f});
-        bg->setPosition({winSize.width / 2, winSize.height / 2 - 10.f});
+        bg->setPosition({m_size.width / 2.f, m_size.height / 2.f - 10.f});
         this->m_mainLayer->addChild(bg);
 
         // Sidebar Background
@@ -30,9 +31,10 @@ protected:
         sidebarBg->setOpacity(100);
         this->m_mainLayer->addChild(sidebarBg);
 
-        // 1. Setup Sidebar Category Buttons
+        // 1. Sidebar Category Buttons
         auto sidebarMenu = CCMenu::create();
         sidebarMenu->setPosition({sidebarBg->getPositionX(), sidebarBg->getPositionY()});
+        sidebarMenu->setContentSize({100.f, 180.f});
         sidebarMenu->setLayout(
             ColumnLayout::create()
                 ->setGap(8.f)
@@ -49,28 +51,28 @@ protected:
                 this,
                 menu_selector(CustomModMenu::onCategorySelect)
             );
-            btn->setID(catName); // Identify which button was clicked
+            btn->setID(catName);
 
             m_categoryButtons[catName] = btnSprite;
             sidebarMenu->addChild(btn);
             
-            // Create a dedicated container node for each category's content
+            // Category Content Container
             auto categoryContainer = CCMenu::create();
             categoryContainer->setPosition({bg->getPositionX() + 50.f, bg->getPositionY()});
             categoryContainer->setContentSize({240.f, 180.f});
+            
+            // Row-based layout (2-Column simulation using RowLayout/AxisLayout)
             categoryContainer->setLayout(
-                GridLayout::create()
-                    ->setCols(2)
+                RowLayout::create()
                     ->setGap(10.f)
-                    ->setRowAlignment(AxisAlignment::Center)
-                    ->setColumnAlignment(AxisAlignment::Start)
+                    ->setGrowCrossAxis(true)
+                    ->setWrap(true)
             );
 
-            // Add specific toggles for this category
             this->populateCategoryToggles(categoryContainer, catName);
             
             categoryContainer->updateLayout();
-            categoryContainer->setVisible(catName == m_currentCategory); // Show active category only
+            categoryContainer->setVisible(catName == m_currentCategory);
             
             this->m_mainLayer->addChild(categoryContainer);
             m_categoryContainers[catName] = categoryContainer;
@@ -79,14 +81,12 @@ protected:
         sidebarMenu->updateLayout();
         this->m_mainLayer->addChild(sidebarMenu);
 
-        // Set initial visual state for active tab
         this->updateTabVisuals();
 
         return true;
     }
 
     void populateCategoryToggles(CCMenu* container, const std::string& catName) {
-        // Example: Add 6-12 toggles labeled according to their category
         for (int i = 1; i <= 8; i++) {
             auto toggle = CCMenuItemToggler::createWithStandardSprites(
                 this,
@@ -118,28 +118,23 @@ protected:
 
         if (selectedCategory == m_currentCategory) return;
 
-        // Hide current category view
         if (m_categoryContainers.count(m_currentCategory)) {
             m_categoryContainers[m_currentCategory]->setVisible(false);
         }
 
-        // Show newly selected category view
         m_currentCategory = selectedCategory;
         if (m_categoryContainers.count(m_currentCategory)) {
             m_categoryContainers[m_currentCategory]->setVisible(true);
         }
 
-        // Update button texture/color states
         this->updateTabVisuals();
     }
 
     void updateTabVisuals() {
         for (auto& [catName, btnSprite] : m_categoryButtons) {
             if (catName == m_currentCategory) {
-                // Highlight active button using a green sprite frame
                 btnSprite->updateBGImage("GJ_button_02.png");
             } else {
-                // Dim inactive buttons using default grey/dark frame
                 btnSprite->updateBGImage("GJ_button_01.png");
             }
         }
@@ -148,7 +143,6 @@ protected:
     void onToggle(CCObject* sender) {
         auto toggle = static_cast<CCMenuItemToggler*>(sender);
         bool isToggled = !toggle->isToggled();
-        // Handle feature activation/deactivation logic here
     }
 
 public:
