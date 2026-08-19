@@ -136,7 +136,7 @@ public:
 // =======================================================================
 class $modify(ModMenuHook, PauseLayer) {
     bool init() {
-        if (!right-button-menu::init())
+        if (!PauseLayer::init(right-button-menu))
             return false;
 
         auto buttonSprite = ButtonSprite::create("Menu");
