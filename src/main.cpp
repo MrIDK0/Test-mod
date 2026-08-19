@@ -30,7 +30,9 @@ public:
         }
 
         CCPoint pos = player->getPosition();
-        CCPoint vel = player->m_playerSpeed;
+        // In GD 2.2, m_playerSpeed is a float/double scalar, m_yVelocity is vertical velocity
+        float speedX = static_cast<float>(player->m_playerSpeed);
+        float velY = static_cast<float>(player->m_yVelocity);
         double gravity = player->m_gravity;
         
         const int steps = 40;
@@ -39,16 +41,17 @@ public:
         CCPoint prevPos = pos;
 
         for (int i = 0; i < steps; ++i) {
-            vel.y += gravity * stepTime;
+            velY += static_cast<float>(gravity * stepTime);
             
-            pos.x += vel.x * stepTime;
-            pos.y += vel.y * stepTime;
+            pos.x += speedX * stepTime * 60.0f; // Scale horizontal movement
+            pos.y += velY * stepTime;
 
-            m_drawNode->drawLine(
+            // Use drawSegment (origin, destination, radius, color) in Cocos2d-x
+            m_drawNode->drawSegment(
                 prevPos, 
                 pos, 
-                ccc4f(0.0f, 1.0f, 1.0f, 0.8f), 
-                2.0f
+                1.0f, 
+                ccc4f(0.0f, 1.0f, 1.0f, 0.8f)
             );
 
             prevPos = pos;
@@ -83,7 +86,8 @@ class $modify(MyPlayLayer, PlayLayer) {
 };
 
 // --- Mod Menu Popup ---
-class MyModMenuPopup : public Popup<> {
+// Explicitly inherit geode::Popup<>
+class MyModMenuPopup : public geode::Popup<> {
 protected:
     bool setup() override {
         this->setTitle("Mod Menu");
@@ -170,10 +174,10 @@ class $modify(MyPauseLayer, PauseLayer) {
 
 // --- PlayerObject Hook ---
 class $modify(MyPlayerObject, PlayerObject) {
-    void destroyPlayer(bool p0, GameObject* p1) {
+    void playerDestroyed(bool p0) {
         if (Mod::get()->getSettingValue<bool>("noclip-enabled")) {
             return;
         }
-        PlayerObject::destroyPlayer(p0, p1);
+        PlayerObject::playerDestroyed(p0);
     }
 };
