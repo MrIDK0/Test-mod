@@ -17,7 +17,7 @@ private:
 
     void addToggle(CCMenu* menu, CCPoint pos, std::string const& text, std::string const& settingKey) {
         auto toggle = CCMenuItemToggler::createWithStandardSprites(
-            this, menu_selector(MyModMenuPopup::onToggleSetting), 0.7f
+            this, menu_selector(MyModMenuPopup::onToggleSetting), 0.65f
         );
         toggle->setPosition(pos);
         toggle->setUserData(new std::string(settingKey));
@@ -27,9 +27,9 @@ private:
         menu->addChild(toggle);
 
         auto label = CCLabelBMFont::create(text.c_str(), "bigFont.fnt");
-        label->setScale(0.35f);
+        label->setScale(0.28f);
         label->setAnchorPoint({0.0f, 0.5f});
-        label->setPosition({pos.x + 18.0f, pos.y});
+        label->setPosition({pos.x + 14.0f, pos.y});
         menu->addChild(label);
     }
 
@@ -58,14 +58,15 @@ private:
         menu->setPosition({0, 0});
         m_contentLayer->addChild(menu);
 
+        // Adjust coordinates relative to m_contentLayer center
         std::vector<CCPoint> leftColumn = {
-            {-30.0f, 60.0f}, {-30.0f, 35.0f}, {-30.0f, 10.0f},
-            {-30.0f, -15.0f}, {-30.0f, -40.0f}, {-30.0f, -65.0f}
+            {-65.0f, 60.0f}, {-65.0f, 35.0f}, {-65.0f, 10.0f},
+            {-65.0f, -15.0f}, {-65.0f, -40.0f}, {-65.0f, -65.0f}
         };
 
         std::vector<CCPoint> rightColumn = {
-            {70.0f, 60.0f}, {70.0f, 35.0f}, {70.0f, 10.0f},
-            {70.0f, -15.0f}, {70.0f, -40.0f}, {70.0f, -65.0f}
+            {35.0f, 60.0f}, {35.0f, 35.0f}, {35.0f, 10.0f},
+            {35.0f, -15.0f}, {35.0f, -40.0f}, {35.0f, -65.0f}
         };
 
         std::string tabPrefix = "core";
@@ -103,12 +104,12 @@ protected:
         titleBg->setPosition({winSize.width / 2, (winSize.height / 2) + 110.0f});
         m_mainLayer->addChild(titleBg);
 
-        auto title = CCLabelBMFont::create("Mod menu", "bigFont.fnt");
+        auto title = CCLabelBMFont::create("MOD MENU", "bigFont.fnt");
         title->setPosition(titleBg->getPosition());
         title->setScale(0.5f);
         m_mainLayer->addChild(title);
 
-        // Close Button
+        // Close Button (Anchored to top-left corner of the background)
         auto closeMenu = CCMenu::create();
         closeMenu->setPosition({0, 0});
         m_mainLayer->addChild(closeMenu);
@@ -118,7 +119,7 @@ protected:
             this,
             menu_selector(MyModMenuPopup::onClose)
         );
-        closeBtn->setPosition({(winSize.width / 2) - 175.0f, (winSize.height / 2) + 95.0f});
+        closeBtn->setPosition({(winSize.width / 2) - 180.0f, (winSize.height / 2) + 100.0f});
         closeMenu->addChild(closeBtn);
 
         // Sidebar Panel Background
@@ -134,10 +135,10 @@ protected:
         m_mainLayer->addChild(sidebarMenu);
 
         std::vector<std::pair<std::string, MenuTab>> tabs = {
-            {"Core", MenuTab::Core},
-            {"Cosmetic", MenuTab::Cosmetic},
-            {"Level", MenuTab::Level},
-            {"Creator", MenuTab::Creator}
+            {"CORE", MenuTab::Core},
+            {"COSMETIC", MenuTab::Cosmetic},
+            {"LEVEL", MenuTab::Level},
+            {"CREATOR", MenuTab::Creator}
         };
 
         float startY = 65.0f;
@@ -153,9 +154,9 @@ protected:
             startY -= 43.0f;
         }
 
-        // Content Area Container
+        // Content Area Container (Shifted left to center inside the right box area)
         m_contentLayer = CCLayer::create();
-        m_contentLayer->setPosition({(winSize.width / 2) + 40.0f, winSize.height / 2});
+        m_contentLayer->setPosition({(winSize.width / 2) + 70.0f, winSize.height / 2});
         m_mainLayer->addChild(m_contentLayer);
 
         loadTabContent();
