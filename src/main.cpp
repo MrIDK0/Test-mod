@@ -1,35 +1,32 @@
 #include <Geode/Geode.hpp>
 #include <Geode/ui/Popup.hpp>
-#include <Geode/ui/Layout.hpp>
 #include <map>
 #include <string>
 #include <vector>
 
 using namespace geode::prelude;
 
-class CustomModMenu : public Popup<std::string const&> {
+class CustomModMenu : public geode::Popup<std::string const&> {
 protected:
     std::map<std::string, CCNode*> m_categoryContainers;
     std::map<std::string, ButtonSprite*> m_categoryButtons;
     std::string m_currentCategory = "CORE";
 
     bool setup(std::string const& title) override {
-        auto winSize = CCDirector::sharedDirector()->getWinSize();
-
         this->setTitle("MOD MENU");
 
         // Main Background Box
         auto bg = cocos2d::extension::CCScale9Sprite::create("GJ_square01.png");
         bg->setContentSize({380.f, 210.f});
-        bg->setPosition({m_size.width / 2.f, m_size.height / 2.f - 10.f});
-        this->m_mainLayer->addChild(bg);
+        bg->setPosition({m_mainLayer->getContentSize().width / 2.f, m_mainLayer->getContentSize().height / 2.f - 10.f});
+        m_mainLayer->addChild(bg);
 
         // Sidebar Background
         auto sidebarBg = cocos2d::extension::CCScale9Sprite::create("square02_001.png");
         sidebarBg->setContentSize({100.f, 190.f});
         sidebarBg->setPosition({bg->getPositionX() - 130.f, bg->getPositionY()});
         sidebarBg->setOpacity(100);
-        this->m_mainLayer->addChild(sidebarBg);
+        m_mainLayer->addChild(sidebarBg);
 
         // 1. Sidebar Category Buttons
         auto sidebarMenu = CCMenu::create();
@@ -61,12 +58,11 @@ protected:
             categoryContainer->setPosition({bg->getPositionX() + 50.f, bg->getPositionY()});
             categoryContainer->setContentSize({240.f, 180.f});
             
-            // Row-based layout (2-Column simulation using RowLayout/AxisLayout)
+            // Row-based multi-row wrapping layout
             categoryContainer->setLayout(
                 RowLayout::create()
                     ->setGap(10.f)
                     ->setGrowCrossAxis(true)
-                    ->setWrap(true)
             );
 
             this->populateCategoryToggles(categoryContainer, catName);
@@ -74,12 +70,12 @@ protected:
             categoryContainer->updateLayout();
             categoryContainer->setVisible(catName == m_currentCategory);
             
-            this->m_mainLayer->addChild(categoryContainer);
+            m_mainLayer->addChild(categoryContainer);
             m_categoryContainers[catName] = categoryContainer;
         }
 
         sidebarMenu->updateLayout();
-        this->m_mainLayer->addChild(sidebarMenu);
+        m_mainLayer->addChild(sidebarMenu);
 
         this->updateTabVisuals();
 
