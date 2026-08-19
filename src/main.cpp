@@ -68,7 +68,7 @@ protected:
 
         // ---- content page (hidden until selected) ----
         auto page = CCMenu::create();
-        page->setPosition({ 0.f, 0.f });
+        page->setPosition({ 468.f, 160.f });
         page->ignoreAnchorPointForPosition(false);
 
         float y = 195.f;
