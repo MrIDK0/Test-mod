@@ -29,7 +29,6 @@ public:
             return;
         }
 
-        // Current kinematics state
         CCPoint pos = player->getPosition();
         CCPoint vel = player->m_playerSpeed;
         double gravity = player->m_gravity;
@@ -39,16 +38,12 @@ public:
         
         CCPoint prevPos = pos;
 
-        // Simple Euler integration projection
         for (int i = 0; i < steps; ++i) {
-            // Apply gravity vector
             vel.y += gravity * stepTime;
             
-            // Advance predicted position
             pos.x += vel.x * stepTime;
             pos.y += vel.y * stepTime;
 
-            // Draw line segment from last point to projected point (Cyan, 2px)
             m_drawNode->drawLine(
                 prevPos, 
                 pos, 
@@ -63,12 +58,13 @@ public:
 
 // --- PlayLayer Hook ---
 class $modify(MyPlayLayer, PlayLayer) {
-    TrajectoryNode* m_trajectoryNode = nullptr;
+    struct Fields {
+        TrajectoryNode* m_trajectoryNode = nullptr;
+    };
 
     bool init(GJGameLevel* level, bool useReplay, bool dontSetVisible) {
         if (!PlayLayer::init(level, useReplay, dontSetVisible)) return false;
 
-        // Attach trajectory overlay to the object layer
         auto trajectory = TrajectoryNode::create();
         trajectory->setID("trajectory-node"_spr);
         m_objectLayer->addChild(trajectory, 100);
