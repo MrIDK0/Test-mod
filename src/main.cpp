@@ -1,147 +1,68 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/PauseLayer.hpp>
-#include <Geode/modify/PlayerObject.hpp>
-#include <Geode/modify/PlayLayer.hpp>
 #include <Geode/ui/Popup.hpp>
 
 using namespace geode::prelude;
 
-// --- Custom Trajectory Node ---
-class TrajectoryNode : public CCNode {
-private:
-    CCDrawNode* m_drawNode = nullptr;
-
-public:
-    CREATE_FUNC(TrajectoryNode);
-
-    bool init() override {
-        if (!CCNode::init()) return false;
-        
-        m_drawNode = CCDrawNode::create();
-        this->addChild(m_drawNode);
-        return true;
-    }
-
-    void drawTrajectory(PlayerObject* player) {
-        m_drawNode->clear();
-
-        if (!player || !Mod::get()->getSettingValue<bool>("show-trajectory")) {
-            return;
-        }
-
-        CCPoint pos = player->getPosition();
-        float speedX = static_cast<float>(player->m_playerSpeed);
-        float velY = static_cast<float>(player->m_yVelocity);
-        double gravity = player->m_gravity;
-        
-        const int steps = 40;
-        const float stepTime = 1.0f / 60.0f;
-        
-        CCPoint prevPos = pos;
-
-        for (int i = 0; i < steps; ++i) {
-            velY += static_cast<float>(gravity * stepTime);
-            
-            pos.x += speedX * stepTime * 60.0f;
-            pos.y += velY * stepTime;
-
-            m_drawNode->drawSegment(
-                prevPos, 
-                pos, 
-                1.0f, 
-                ccc4f(0.0f, 1.0f, 1.0f, 0.8f)
-            );
-
-            prevPos = pos;
-        }
-    }
-};
-
-// --- PlayLayer Hook ---
-class $modify(MyPlayLayer, PlayLayer) {
-    struct Fields {
-        TrajectoryNode* m_trajectoryNode = nullptr;
-    };
-
-    bool init(GJGameLevel* level, bool useReplay, bool dontSetVisible) {
-        if (!PlayLayer::init(level, useReplay, dontSetVisible)) return false;
-
-        auto trajectory = TrajectoryNode::create();
-        trajectory->setID("trajectory-node"_spr);
-        m_objectLayer->addChild(trajectory, 100);
-        m_fields->m_trajectoryNode = trajectory;
-
-        return true;
-    }
-
-    void update(float dt) {
-        PlayLayer::update(dt);
-
-        if (m_fields->m_trajectoryNode && m_player1) {
-            m_fields->m_trajectoryNode->drawTrajectory(m_player1);
-        }
-    }
-};
-
 // --- Mod Menu Popup ---
-// Inherit explicitly from geode::Popup<std::string const&>
-class MyModMenuPopup : public geode::Popup<std::string const&> {
+class MyModMenuPopup : public FLAlertLayer {
 protected:
-    bool setup(std::string const& title) override {
-        this->setTitle(title);
+    bool init() {
+        if (!FLAlertLayer::init(150)) return false;
 
+        auto winSize = CCDirector::sharedDirector()->getWinSize();
+
+        // Main container layer
+        m_mainLayer = CCLayer::create();
+        this->addChild(m_mainLayer);
+
+        // Background panel
+        auto bg = CCScale9Sprite::create("GJ_square01.png", { 0, 0, 80, 80 });
+        bg->setContentSize({ 280.0f, 180.0f });
+        bg->setPosition(winSize / 2);
+        m_mainLayer->addChild(bg);
+
+        // Title
+        auto title = CCLabelBMFont::create("Mod Menu", "bigFont.fnt");
+        title->setPosition({ winSize.width / 2, (winSize.height / 2) + 65.0f });
+        title->setScale(0.7f);
+        m_mainLayer->addChild(title);
+
+        // Interactive menu layer
         auto menu = CCMenu::create();
-        menu->setPosition(m_mainLayer->getContentSize() / 2);
+        menu->setPosition(winSize / 2);
         m_mainLayer->addChild(menu);
 
-        // Toggle 1: Noclip
-        auto noclipToggle = CCMenuItemToggler::createWithStandardSprites(
-            this, menu_selector(MyModMenuPopup::onToggleNoclip), 0.8f
+        // Close Button
+        auto closeBtnSprite = CCSprite::createWithSpriteFrameName("GJ_closeBtn_001.png");
+        closeBtnSprite->setScale(0.8f);
+
+        auto closeBtn = CCMenuItemSpriteExtra::create(
+            closeBtnSprite, this, menu_selector(MyModMenuPopup::onClose)
         );
-        noclipToggle->setPosition({-60, 20});
-        noclipToggle->toggle(Mod::get()->getSettingValue<bool>("noclip-enabled"));
-        menu->addChild(noclipToggle);
-
-        auto noclipLabel = CCLabelBMFont::create("Noclip", "bigFont.fnt");
-        noclipLabel->setScale(0.5f);
-        noclipLabel->setPosition({noclipToggle->getPositionX() + 60, noclipToggle->getPositionY()});
-        menu->addChild(noclipLabel);
-
-        // Toggle 2: Trajectory Path
-        auto trajToggle = CCMenuItemToggler::createWithStandardSprites(
-            this, menu_selector(MyModMenuPopup::onToggleTrajectory), 0.8f
-        );
-        trajToggle->setPosition({-60, -30});
-        trajToggle->toggle(Mod::get()->getSettingValue<bool>("show-trajectory"));
-        menu->addChild(trajToggle);
-
-        auto trajLabel = CCLabelBMFont::create("Trajectory Path", "bigFont.fnt");
-        trajLabel->setScale(0.5f);
-        trajLabel->setPosition({trajToggle->getPositionX() + 95, trajToggle->getPositionY()});
-        menu->addChild(trajLabel);
+        closeBtn->setPosition({ -125.0f, 75.0f });
+        menu->addChild(closeBtn);
 
         return true;
     }
 
-    void onToggleNoclip(CCObject* sender) {
-        bool current = Mod::get()->getSettingValue<bool>("noclip-enabled");
-        Mod::get()->setSettingValue("noclip-enabled", !current);
-    }
-
-    void onToggleTrajectory(CCObject* sender) {
-        bool current = Mod::get()->getSettingValue<bool>("show-trajectory");
-        Mod::get()->setSettingValue("show-trajectory", !current);
+    void onClose(CCObject* sender) {
+        this->keyBackClicked();
     }
 
 public:
     static MyModMenuPopup* create() {
         auto ret = new MyModMenuPopup();
-        if (ret && ret->initAnchored(280.0f, 180.0f, "Mod Menu")) {
+        if (ret && ret->init()) {
             ret->autorelease();
             return ret;
         }
         CC_SAFE_DELETE(ret);
         return nullptr;
+    }
+
+    void show() {
+        FLAlertLayer::show();
     }
 };
 
@@ -167,15 +88,5 @@ class $modify(MyPauseLayer, PauseLayer) {
 
     void onOpenModMenu(CCObject* sender) {
         MyModMenuPopup::create()->show();
-    }
-};
-
-// --- PlayerObject Hook ---
-class $modify(MyPlayerObject, PlayerObject) {
-    void playerDestroyed(bool p0) {
-        if (Mod::get()->getSettingValue<bool>("noclip-enabled")) {
-            return;
-        }
-        PlayerObject::playerDestroyed(p0);
     }
 };
