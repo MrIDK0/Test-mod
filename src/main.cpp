@@ -1,100 +1,165 @@
-/**
- * Include the Geode headers.
- */
 #include <Geode/Geode.hpp>
+#include <Geode/modify/MenuLayer.hpp>
 
-/**
- * Brings cocos2d and all Geode namespaces to the current scope.
- */
 using namespace geode::prelude;
 
-/**
- * `$modify` lets you extend and modify GD's classes.
- * To hook a function in Geode, simply $modify the class
- * and write a new function definition with the signature of
- * the function you want to hook.
- *
- * Here we use the overloaded `$modify` macro to set our own class name,
- * so that we can use it for button callbacks.
- *
- * Notice the header being included, you *must* include the header for
- * the class you are modifying, or you will get a compile error.
- *
- * Another way you could do this is like this:
- *
- * struct MyMenuLayer : Modify<MyMenuLayer, MenuLayer> {};
- */
-#include <Geode/modify/PuseLayer.hpp>
-class $modify(right-button-menu, right-button-menu) {
-	/**
-	 * Typically classes in GD are initialized using the `init` function, (though not always!),
-	 * so here we use it to add our own button to the bottom menu.
-	 *
-	 * Note that for all hooks, your signature has to *match exactly*,
-	 * `void init()` would not place a hook!
-	*/
-	bool init() {
-		/**
-		 * We call the original init function so that the
-		 * original class is properly initialized.
-		 */
-		if (!right-button-menu::init()) {
-			return false;
-		}
+// =======================================================================
+// ModMenuPopup
+//
+// A sidebar of category tabs on the left + a content panel on the right
+// that swaps between pages of toggles depending on the selected tab —
+// the general layout style used by most GD mod menus (Eclipse, Mega
+// Hack, etc). Built entirely with standard Geode/Cocos2d UI pieces, not
+// copied from any specific mod's code or assets.
+//
+// Everything below is a skeleton with placeholder rows. To add real
+// features:
+//   1. Replace the row labels passed into addTab(...) in init().
+//   2. Handle the real toggle logic in onRowToggled() (the sender's
+//      new state is described in the comment inside it).
+//
+// References:
+//   - Buttons:     https://docs.geode-sdk.org/tutorials/buttons/
+//   - Popups:      https://docs.geode-sdk.org/tutorials/popup/
+//   - Positioning: https://docs.geode-sdk.org/tutorials/positioning/
+// =======================================================================
+class ModMenuPopup : public geode::Popup {
+protected:
+    static constexpr float POPUP_WIDTH = 420.f;
+    static constexpr float POPUP_HEIGHT = 280.f;
 
-		/**
-		 * You can use methods from the `geode::log` namespace to log messages to the console,
-		 * being useful for debugging and such. See this page for more info about logging:
-		 * https://docs.geode-sdk.org/tutorials/logging
-		*/
-		log::debug("Hello from my MenuLayer::init hook! This layer has {} children.", this->getChildrenCount());
+    std::vector<CCMenuItemSpriteExtra*> m_tabButtons;
+    std::vector<CCMenu*> m_pages;
 
-		/**
-		 * See this page for more info about buttons
-		 * https://docs.geode-sdk.org/tutorials/buttons
-		*/
-		auto myButton = CCMenuItemSpriteExtra::create(
-			CCSprite::createWithSpriteFrameName("GJ_likeBtn_001.png"),
-			this,
-			/**
-			 * Here we use the name we set earlier for our modify class.
-			*/
-			menu_selector(right-button-menu::onMyButton)
-		);
+    // One toggle + label row inside a page.
+    void addRow(CCMenu* page, char const* label, float y) {
+        auto offSpr = CCSprite::createWithSpriteFrameName("GJ_checkOff_001.png");
+        auto onSpr = CCSprite::createWithSpriteFrameName("GJ_checkOn_001.png");
 
-		/**
-		 * Here we access the `bottom-menu` node by its ID, and add our button to it.
-		 * Node IDs are a Geode feature, see this page for more info about it:
-		 * https://docs.geode-sdk.org/tutorials/nodetree
-		*/
-		auto menu = this->getChildByID("bottom-menu");
-		menu->addChild(myButton);
+        auto toggle = CCMenuItemToggler::create(
+            offSpr, onSpr, this, menu_selector(ModMenuPopup::onRowToggled)
+        );
+        toggle->setScale(0.65f);
+        toggle->setPosition({ 20.f, y });
+        page->addChild(toggle);
 
-		/**
-		 * The `_spr` string literal operator just prefixes the string with
-		 * your mod id followed by a slash. This is good practice for setting your own node ids.
-		*/
-		myButton->setID("my-button"_spr);
+        auto text = CCLabelBMFont::create(label, "bigFont.fnt");
+        text->setScale(0.4f);
+        text->setAnchorPoint({ 0.f, 0.5f });
+        text->setPosition({ 44.f, y });
+        page->addChild(text);
+    }
 
-		/**
-		 * We update the layout of the menu to ensure that our button is properly placed.
-		 * This is yet another Geode feature, see this page for more info about it:
-		 * https://docs.geode-sdk.org/tutorials/layouts
-		*/
-		menu->updateLayout();
+    // One sidebar tab + its content page, built from a list of row labels.
+    void addTab(char const* name, std::vector<std::string> const& rows, float tabY) {
+        int index = static_cast<int>(m_pages.size());
 
-		/**
-		 * We return `true` to indicate that the class was properly initialized.
-		 */
-		return true;
-	}
+        // ---- sidebar button ----
+        auto sprite = ButtonSprite::create(name);
+        sprite->setScale(0.6f);
 
-	/**
-	 * This is the callback function for the button we created earlier.
-	 * The signature for button callbacks must always be the same,
-	 * return type `void` and taking a `CCObject*`.
-	*/
-	void onMyButton(CCObject*) {
-		FLAlertLayer::create("Geode", "Hello from my custom mod!", "OK")->show();
-	}
+        auto button = CCMenuItemSpriteExtra::create(
+            sprite, this, menu_selector(ModMenuPopup::onSelectTab)
+        );
+        button->setTag(index);
+        button->setPosition({ 55.f, tabY });
+        m_mainLayer->addChild(button);
+        m_tabButtons.push_back(button);
+
+        // ---- content page (hidden until selected) ----
+        auto page = CCMenu::create();
+        page->setPosition({ 0.f, 0.f });
+        page->ignoreAnchorPointForPosition(false);
+
+        float y = 195.f;
+        for (auto& row : rows) {
+            addRow(page, row.c_str(), y);
+            y -= 34.f;
+        }
+
+        m_mainLayer->addChild(page);
+        m_pages.push_back(page);
+    }
+
+    void onSelectTab(CCObject* sender) {
+        int index = static_cast<CCNode*>(sender)->getTag();
+        for (int i = 0; i < static_cast<int>(m_pages.size()); i++) {
+            m_pages[i]->setVisible(i == index);
+
+            auto spr = static_cast<ButtonSprite*>(m_tabButtons[i]->getNormalImage());
+            spr->setColor(i == index ? ccc3(255, 255, 255) : ccc3(120, 120, 120));
+        }
+    }
+
+    void onRowToggled(CCObject* sender) {
+        // TODO: wire this up to a real feature.
+        // `sender` is the CCMenuItemToggler that was clicked; its state
+        // right after the click is available via isToggled(), e.g.:
+        //
+        // auto toggler = static_cast<CCMenuItemToggler*>(sender);
+        // bool enabled = toggler->isToggled();
+    }
+
+    bool init() {
+        if (!Popup::init(POPUP_WIDTH, POPUP_HEIGHT))
+            return false;
+
+        this->setTitle("Mod Menu");
+
+        // Add a tab (name, row labels, sidebar y-position) for each
+        // category. Add/remove tabs and rows freely here.
+        addTab("Player", { "Example toggle 1", "Example toggle 2" }, 195.f);
+        addTab("Visual", { "Example toggle 1", "Example toggle 2" }, 155.f);
+        addTab("Misc",   { "Example toggle 1", "Example toggle 2" }, 115.f);
+
+        onSelectTab(m_tabButtons[0]);
+
+        return true;
+    }
+
+public:
+    static ModMenuPopup* create() {
+        auto ret = new ModMenuPopup();
+        if (ret->init()) {
+            ret->autorelease();
+            return ret;
+        }
+        delete ret;
+        return nullptr;
+    }
+};
+
+// =======================================================================
+// Hook the main menu (MenuLayer) to add a button that opens the mod
+// menu popup. Swap MenuLayer for another layer (e.g. PlayLayer) if
+// you'd rather have the button show up somewhere else in the game.
+// =======================================================================
+class $modify(ModMenuHook, MenuLayer) {
+    bool init() {
+        if (!MenuLayer::init())
+            return false;
+
+        auto buttonSprite = ButtonSprite::create("Menu");
+        buttonSprite->setScale(0.6f);
+
+        auto button = CCMenuItemSpriteExtra::create(
+            buttonSprite,
+            this,
+            menu_selector(ModMenuHook::onOpenModMenu)
+        );
+
+        auto menu = CCMenu::create();
+        menu->addChild(button);
+
+        auto winSize = CCDirector::sharedDirector()->getWinSize();
+        menu->setPosition({ winSize.width - 40.f, winSize.height - 30.f });
+
+        this->addChild(menu, 100);
+
+        return true;
+    }
+
+    void onOpenModMenu(CCObject*) {
+        ModMenuPopup::create()->show();
+    }
 };
