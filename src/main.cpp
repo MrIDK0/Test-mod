@@ -15,7 +15,6 @@ private:
     CCLayer* m_contentLayer = nullptr;
     MenuTab m_currentTab = MenuTab::Core;
 
-    // Helper method to add a single toggle + label to a menu container
     void addToggle(CCMenu* menu, CCPoint pos, std::string const& text, std::string const& settingKey) {
         auto toggle = CCMenuItemToggler::createWithStandardSprites(
             this, menu_selector(MyModMenuPopup::onToggleSetting), 0.7f
@@ -23,7 +22,6 @@ private:
         toggle->setPosition(pos);
         toggle->setUserData(new std::string(settingKey));
         
-        // Read saved setting or default to false
         bool enabled = Mod::get()->getSettingValue<bool>(settingKey);
         toggle->toggle(enabled);
         menu->addChild(toggle);
@@ -45,7 +43,9 @@ private:
     }
 
     void onSelectTab(CCObject* sender) {
-        auto btn = static_cast<CCMenuItemTagData*>(sender);
+        auto btn = static_cast<CCMenuItem*>(sender);
+        if (!btn) return;
+
         m_currentTab = static_cast<MenuTab>(btn->getTag());
         loadTabContent();
     }
@@ -58,7 +58,6 @@ private:
         menu->setPosition({0, 0});
         m_contentLayer->addChild(menu);
 
-        // Grid positions relative to the content area center (2 columns, 6 rows max)
         std::vector<CCPoint> leftColumn = {
             {-30.0f, 60.0f}, {-30.0f, 35.0f}, {-30.0f, 10.0f},
             {-30.0f, -15.0f}, {-30.0f, -40.0f}, {-30.0f, -65.0f}
@@ -69,7 +68,6 @@ private:
             {70.0f, -15.0f}, {70.0f, -40.0f}, {70.0f, -65.0f}
         };
 
-        // Populate items based on selected tab
         std::string tabPrefix = "core";
         switch (m_currentTab) {
             case MenuTab::Core:     tabPrefix = "core"; break;
@@ -93,7 +91,7 @@ protected:
         m_mainLayer = CCLayer::create();
         this->addChild(m_mainLayer);
 
-        // Main Dialog Background (Width: 380, Height: 220)
+        // Main Dialog Background
         auto bg = CCScale9Sprite::create("GJ_square01.png", { 0, 0, 80, 80 });
         bg->setContentSize({ 380.0f, 220.0f });
         bg->setPosition(winSize / 2);
@@ -179,7 +177,7 @@ public:
         return nullptr;
     }
 
-    void show() {
+    void show() override {
         FLAlertLayer::show();
     }
 };
@@ -189,7 +187,7 @@ class $modify(MyPauseLayer, PauseLayer) {
     void customSetup() {
         PauseLayer::customSetup();
 
-        auto menu = this->getChildByID("right-button-menu");
+        auto menu = this->getChildByID("left-button-menu");
         if (!menu) return;
 
         auto btnSprite = CCSprite::createWithSpriteFrameName("GJ_optionsBtn_001.png");
