@@ -30,7 +30,6 @@ public:
         }
 
         CCPoint pos = player->getPosition();
-        // In GD 2.2, m_playerSpeed is a float/double scalar, m_yVelocity is vertical velocity
         float speedX = static_cast<float>(player->m_playerSpeed);
         float velY = static_cast<float>(player->m_yVelocity);
         double gravity = player->m_gravity;
@@ -43,10 +42,9 @@ public:
         for (int i = 0; i < steps; ++i) {
             velY += static_cast<float>(gravity * stepTime);
             
-            pos.x += speedX * stepTime * 60.0f; // Scale horizontal movement
+            pos.x += speedX * stepTime * 60.0f;
             pos.y += velY * stepTime;
 
-            // Use drawSegment (origin, destination, radius, color) in Cocos2d-x
             m_drawNode->drawSegment(
                 prevPos, 
                 pos, 
@@ -86,11 +84,11 @@ class $modify(MyPlayLayer, PlayLayer) {
 };
 
 // --- Mod Menu Popup ---
-// Explicitly inherit geode::Popup<>
-class MyModMenuPopup : public geode::Popup<> {
+// Inherit explicitly from geode::Popup<std::string const&>
+class MyModMenuPopup : public geode::Popup<std::string const&> {
 protected:
-    bool setup() override {
-        this->setTitle("Mod Menu");
+    bool setup(std::string const& title) override {
+        this->setTitle(title);
 
         auto menu = CCMenu::create();
         menu->setPosition(m_mainLayer->getContentSize() / 2);
@@ -138,7 +136,7 @@ protected:
 public:
     static MyModMenuPopup* create() {
         auto ret = new MyModMenuPopup();
-        if (ret && ret->initAnchored(280.0f, 180.0f)) {
+        if (ret && ret->initAnchored(280.0f, 180.0f, "Mod Menu")) {
             ret->autorelease();
             return ret;
         }
