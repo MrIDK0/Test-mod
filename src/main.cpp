@@ -6,13 +6,13 @@
 
 using namespace geode::prelude;
 
-class CustomModMenu : public geode::Popup<std::string const&> {
+class CustomModMenu : public geode::Popup<> {
 protected:
     std::map<std::string, CCNode*> m_categoryContainers;
     std::map<std::string, ButtonSprite*> m_categoryButtons;
     std::string m_currentCategory = "CORE";
 
-    bool setup(std::string const& title) override {
+    bool setup() override {
         this->setTitle("MOD MENU");
 
         // Main Background Box
@@ -58,7 +58,6 @@ protected:
             categoryContainer->setPosition({bg->getPositionX() + 50.f, bg->getPositionY()});
             categoryContainer->setContentSize({240.f, 180.f});
             
-            // Row-based multi-row wrapping layout
             categoryContainer->setLayout(
                 RowLayout::create()
                     ->setGap(10.f)
@@ -144,7 +143,7 @@ protected:
 public:
     static CustomModMenu* create() {
         auto ret = new CustomModMenu();
-        if (ret && ret->initAnchored(400.f, 260.f, "MOD MENU")) {
+        if (ret && ret->initAnchored(400.f, 260.f)) {
             ret->autorelease();
             return ret;
         }
