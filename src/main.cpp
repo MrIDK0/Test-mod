@@ -1,5 +1,5 @@
 #include <Geode/Geode.hpp>
-#include <Geode/modify/MenuLayer.hpp>
+#include <Geode/modify/PlayLayer.hpp>
 
 using namespace geode::prelude;
 
@@ -134,9 +134,9 @@ public:
 // menu popup. Swap MenuLayer for another layer (e.g. PlayLayer) if
 // you'd rather have the button show up somewhere else in the game.
 // =======================================================================
-class $modify(ModMenuHook, MenuLayer) {
+class $modify(ModMenuHook, PlayLayer) {
     bool init() {
-        if (!MenuLayer::init())
+        if (!PlayLayer::init())
             return false;
 
         auto buttonSprite = ButtonSprite::create("Menu");
