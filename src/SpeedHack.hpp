@@ -20,8 +20,8 @@ namespace SpeedHack {
         }
 
         // Guard against 0/negative/garbage values freezing or breaking the game
-        if (value <= 0.01f) value = 0.01f;
-        if (value > 20.f) value = 20.f;
+        if (value <= 0.0001f) value = 0.0001f;
+        if (value > 9999.f) value = 9999.f;
 
         CCDirector::sharedDirector()->getScheduler()->setTimeScale(enabled ? value : 1.0f);
     }
