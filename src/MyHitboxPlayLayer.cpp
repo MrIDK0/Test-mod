@@ -41,7 +41,7 @@ class $modify(MyHitboxPlayLayer, PlayLayer) {
         };
 
         drawHitbox(m_player1, {1.f, 0.f, 0.f, 1.f}); // red
-        if (m_player2 && m_isDualMode) {
+        if (m_player2 && m_player2->isVisible()) {
             drawHitbox(m_player2, {0.f, 0.6f, 1.f, 1.f}); // blue
         }
     }
