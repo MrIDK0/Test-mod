@@ -9,20 +9,19 @@ class $modify(MyHitboxPlayLayer, PlayLayer) {
 
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
         if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
-
-        // Parent to the same layer the player lives in, so the drawing
-        // scrolls together with gameplay instead of staying fixed in place.
-        if (m_player1 && m_player1->getParent()) {
-            auto node = CCDrawNode::create();
-            m_player1->getParent()->addChild(node, 1000);
-            m_fields->hitboxNode = node;
-        }
-
         return true;
     }
 
     void update(float dt) {
         PlayLayer::update(dt);
+
+        // Create the draw node the first moment the player actually exists,
+        // whenever that happens to be - avoids relying on init() timing.
+        if (!m_fields->hitboxNode && m_player1 && m_player1->getParent()) {
+            auto node = CCDrawNode::create();
+            m_player1->getParent()->addChild(node, 1000);
+            m_fields->hitboxNode = node;
+        }
 
         auto node = m_fields->hitboxNode;
         if (!node) return;
