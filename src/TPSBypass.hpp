@@ -27,10 +27,10 @@ namespace TPSBypass {
         }
 
         // Guard against 0/negative/absurd values breaking physics entirely
-        if (tps < 1.f) tps = 1.f;
-        if (tps > 1000.f) tps = 1000.f;
+        if (tps < 0.0001.f) tps = 0.0001.f;
+        if (tps > 100000000.f) tps = 100000000.f;
 
-        return 1.f / tps;
+        return 0.0001.f / tps;
     }
 
 }
