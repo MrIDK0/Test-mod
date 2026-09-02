@@ -4,18 +4,20 @@
 using namespace geode::prelude;
 
 // Hooked on GJBaseGameLayer (not PlayLayer) since that's the actual class
-// that owns getModifiedDelta - PlayLayer inherits it, so this covers normal
+// that owns update() - PlayLayer inherits it, so this covers normal
 // levels, and also the editor's test mode for free.
+//
+// Note: overriding getModifiedDelta()'s return value alone doesn't reliably
+// work - other internal physics state stays based on the real frame time,
+// so it falls out of sync. Instead, feed the desired timestep in as the
+// input to update() itself, so everything downstream (including GD's own
+// internal getModifiedDelta call) works consistently off it.
 class $modify(MyTPSBypassLayer, GJBaseGameLayer) {
-    float getModifiedDelta(float dt) {
-        // Call the original first - it does some internal bookkeeping
-        // beyond just returning a number, so we still want that to happen.
-        float original = GJBaseGameLayer::getModifiedDelta(dt);
-
+    void update(float dt) {
         if (TPSBypass::isEnabled()) {
-            return TPSBypass::getDesiredDelta();
+            GJBaseGameLayer::update(TPSBypass::getDesiredDelta());
+        } else {
+            GJBaseGameLayer::update(dt);
         }
-
-        return original;
     }
 };
