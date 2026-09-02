@@ -8,9 +8,12 @@
 using namespace geode::prelude;
 
 class ModMenuPopup : public geode::Popup {
-protected:
+public:
     static constexpr int TAB_COUNT = 4;
 
+    static ModMenuPopup* create();
+
+protected:
     std::array<CCNode*, TAB_COUNT> m_pages{};
     std::array<CCMenu*, TAB_COUNT> m_pageMenus{};
     std::array<CCMenuItemSpriteExtra*, TAB_COUNT> m_tabButtons{};
@@ -28,7 +31,4 @@ protected:
                     const std::string& label, int row, int col);
 
     void selectTab(int index);
-
-public:
-    static ModMenuPopup* create();
 };
