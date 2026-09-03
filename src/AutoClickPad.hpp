@@ -16,6 +16,10 @@ namespace AutoClickPadConfig {
 
     // Which input this simulates - 1 is jump / the primary click
     constexpr int CLICK_BUTTON = 1;
+
+    // How many frames the click should be held down for.
+    // Set to 2 by default, but you can change this to any integer value.
+    constexpr int CLICK_DURATION_FRAMES = 2;
 }
 
 namespace AutoClickPad {
