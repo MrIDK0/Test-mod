@@ -11,18 +11,20 @@ class $modify(MyAutoClickPadLayer, GJBaseGameLayer) {
         std::vector<GameObject*> targetPads;
         bool cached = false;
         bool wasNear = false;
-        bool releaseNextFrame = false;
+        int clickFramesRemaining = 0;
     };
 
     void update(float dt) {
         GJBaseGameLayer::update(dt);
 
-        // Release a pending click exactly 1 frame after it was pressed,
-        // regardless of current toggle state - avoids ever leaving the
-        // button stuck down if the toggle gets flipped off mid-press.
-        if (m_fields->releaseNextFrame) {
-            GJBaseGameLayer::handleButton(false, AutoClickPadConfig::CLICK_BUTTON, true);
-            m_fields->releaseNextFrame = false;
+        // Process active click duration frame-by-frame
+        if (m_fields->clickFramesRemaining > 0) {
+            m_fields->clickFramesRemaining--;
+            
+            // Once the frame counter reaches 0, send the release signal
+            if (m_fields->clickFramesRemaining == 0) {
+                GJBaseGameLayer::handleButton(false, AutoClickPadConfig::CLICK_BUTTON, true);
+            }
         }
 
         if (!AutoClickPad::isEnabled()) {
@@ -58,11 +60,10 @@ class $modify(MyAutoClickPadLayer, GJBaseGameLayer) {
             }
         }
 
-        // Rising edge only - clicks once per approach, not every frame
-        // you happen to still be sitting inside the radius.
+        // Rising edge only - triggers the initial click and sets the frame timer
         if (nowNear && !m_fields->wasNear) {
             GJBaseGameLayer::handleButton(true, AutoClickPadConfig::CLICK_BUTTON, true);
-            m_fields->releaseNextFrame = true;
+            m_fields->clickFramesRemaining = AutoClickPadConfig::CLICK_DURATION_FRAMES;
         }
 
         m_fields->wasNear = nowNear;
