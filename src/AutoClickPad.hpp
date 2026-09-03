@@ -12,7 +12,7 @@ namespace AutoClickPadConfig {
     constexpr int TARGET_OBJECT_ID = 1332;
 
     // How close the player needs to be (in-game units) to count as "near"
-    constexpr float TRIGGER_RADIUS = 30.f;
+    constexpr float TRIGGER_RADIUS = 46.2f;
 
     // Which input this simulates - 1 is jump / the primary click
     constexpr int CLICK_BUTTON = 1;
