@@ -4,25 +4,36 @@
 
 using namespace geode::prelude;
 
+// Hooked on GJBaseGameLayer (not PlayLayer) so this also works in the
+// editor's test mode, which inherits from the same base.
 class $modify(MyAutoClickPadLayer, GJBaseGameLayer) {
     struct Fields {
         std::vector<GameObject*> targetPads;
         bool cached = false;
         bool wasNear = false;
-        int activeClickFrames = 0;
+        int clickFramesRemaining = 0;
     };
 
-    void processCommands() {
-        // Run standard game commands first
-        GJBaseGameLayer::processCommands();
+    void update(float dt) {
+        GJBaseGameLayer::update(dt);
+
+        // Process active click duration frame-by-frame
+        if (m_fields->clickFramesRemaining > 0) {
+            m_fields->clickFramesRemaining--;
+            
+            // Once the frame counter reaches 0, send the release signal
+            if (m_fields->clickFramesRemaining == 0) {
+                GJBaseGameLayer::handleButton(false, AutoClickPadConfig::CLICK_BUTTON, true);
+            }
+        }
 
         if (!AutoClickPad::isEnabled()) {
             m_fields->wasNear = false;
-            m_fields->activeClickFrames = 0;
             return;
         }
 
-        // Cache target objects once on level load
+        // Build the list of matching pads once instead of scanning every
+        // object in the level on every single frame.
         if (!m_fields->cached) {
             m_fields->targetPads.clear();
             if (m_objects) {
@@ -36,7 +47,6 @@ class $modify(MyAutoClickPadLayer, GJBaseGameLayer) {
             m_fields->cached = true;
         }
 
-        // Check player proximity
         bool nowNear = false;
         if (m_player1) {
             auto playerPos = m_player1->getPosition();
@@ -50,21 +60,10 @@ class $modify(MyAutoClickPadLayer, GJBaseGameLayer) {
             }
         }
 
-        // Trigger new click sequence on rising edge
+        // Rising edge only - triggers the initial click and sets the frame timer
         if (nowNear && !m_fields->wasNear) {
-            m_fields->activeClickFrames = AutoClickPadConfig::CLICK_DURATION_FRAMES;
-        }
-
-        // Handle exact frame duration
-        if (m_fields->activeClickFrames > 0) {
-            // Send push signal
             GJBaseGameLayer::handleButton(true, AutoClickPadConfig::CLICK_BUTTON, true);
-            m_fields->activeClickFrames--;
-
-            // Release precisely on the final frame
-            if (m_fields->activeClickFrames == 0) {
-                GJBaseGameLayer::handleButton(false, AutoClickPadConfig::CLICK_BUTTON, true);
-            }
+            m_fields->clickFramesRemaining = AutoClickPadConfig::CLICK_DURATION_FRAMES;
         }
 
         m_fields->wasNear = nowNear;
