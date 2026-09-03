@@ -7,17 +7,39 @@ using namespace geode::prelude;
 // that owns update() - PlayLayer inherits it, so this covers normal
 // levels, and also the editor's test mode for free.
 //
-// Note: overriding getModifiedDelta()'s return value alone doesn't reliably
-// work - other internal physics state stays based on the real frame time,
-// so it falls out of sync. Instead, feed the desired timestep in as the
-// input to update() itself, so everything downstream (including GD's own
-// internal getModifiedDelta call) works consistently off it.
+// Real fixed-timestep approach: accumulate real elapsed time (dt, which
+// already reflects Speed Hack's time scale if that's active too) and drain
+// it in fixed-size chunks sized to the desired TPS. This changes how many
+// physics steps happen per real second WITHOUT changing how much total game
+// time passes per real second - unlike just substituting dt directly, which
+// only ends up changing overall speed (that's what happened last time).
 class $modify(MyTPSBypassLayer, GJBaseGameLayer) {
+    struct Fields {
+        float accumulator = 0.f;
+    };
+
     void update(float dt) {
-        if (TPSBypass::isEnabled()) {
-            GJBaseGameLayer::update(TPSBypass::getDesiredDelta());
-        } else {
+        if (!TPSBypass::isEnabled()) {
             GJBaseGameLayer::update(dt);
+            m_fields->accumulator = 0.f; // avoid a burst if re-enabled later
+            return;
+        }
+
+        float tickDt = TPSBypass::getDesiredDelta();
+        m_fields->accumulator += dt;
+
+        // Cap catch-up so a lag spike can't trigger a huge burst of steps
+        // (spiral of death) - at most 8 ticks get processed in one frame.
+        float maxCatchUp = tickDt * 8.f;
+        if (m_fields->accumulator > maxCatchUp) {
+            m_fields->accumulator = maxCatchUp;
+        }
+
+        int steps = 0;
+        while (m_fields->accumulator >= tickDt && steps < 8) {
+            GJBaseGameLayer::update(tickDt);
+            m_fields->accumulator -= tickDt;
+            steps++;
         }
     }
 };
