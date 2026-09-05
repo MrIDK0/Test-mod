@@ -94,9 +94,11 @@ bool ModMenuPopup::init() {
         int slot = 0;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 2; col++) {
-                bool isLevelFirstSlot = (t == 2 && row == 0 && col == 0);
-                if (isLevelFirstSlot) {
-                    addToggle(page, menu, "autoclick-pad-enabled", "Auto-Click Pad", row, col);
+                bool isLevelRow0 = (t == 2 && row == 0);
+                if (isLevelRow0 && col == 0) {
+                    addToggle(page, menu, "autoclick-jumppads-enabled", "Click Jump Pads", row, col);
+                } else if (isLevelRow0 && col == 1) {
+                    addToggle(page, menu, "autoclick-gravitypads-enabled", "Click Gravity Pads", row, col);
                 } else {
                     std::string key = std::string(TAB_KEYS[t]) + "-example-" + std::to_string(slot);
                     addToggle(page, menu, key, "Example Toggle", row, col);
