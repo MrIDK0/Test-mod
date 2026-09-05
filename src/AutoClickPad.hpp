@@ -25,6 +25,21 @@ namespace AutoClickPadConfig {
         }
         return false;
     }
+
+    // Dash orbs use a different signal entirely - PlayerObject::startDashing
+    // is called with the actual DashRingObject touched, so these are real
+    // level-editor object IDs (a different numbering than the objectType
+    // tags above). Best-effort defaults - verify in the editor's object
+    // info panel and adjust if either doesn't match.
+    constexpr int GREEN_DASH_ORB_ID  = 1704;
+    constexpr int PURPLE_DASH_ORB_ID = 1751;
+
+    // Fixed hold for dash-orb triggers specifically, independent of the
+    // user-configurable Click Frames field (which only applies to pads).
+    constexpr int DASH_ORB_HOLD_FRAMES = 2;
+    inline float getDashOrbHoldSeconds() {
+        return static_cast<float>(DASH_ORB_HOLD_FRAMES) / 240.f;
+    }
 }
 
 namespace AutoClickPad {
