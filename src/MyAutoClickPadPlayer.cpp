@@ -18,10 +18,10 @@ class $modify(MyAutoClickPadPlayer, PlayerObject) {
         bool isPlayer1 = this->m_isSecondPlayer ^
             GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls);
 
-        // Queue a press immediately followed by a release - GD's own queue
-        // handles the exact timing, so this reliably reads as a single tap.
+        // Queue a press immediately, then a release after the configured
+        // hold duration - GD's own queue handles the exact timing.
         layer->queueButton((int)PlayerButton::Jump, true, isPlayer1, 0.0);
-        layer->queueButton((int)PlayerButton::Jump, false, isPlayer1, 0.0);
+        layer->queueButton((int)PlayerButton::Jump, false, isPlayer1, AutoClickPad::getClickHoldSeconds());
 
         AutoClickPad::alreadyClickedThisTick() = true;
     }
