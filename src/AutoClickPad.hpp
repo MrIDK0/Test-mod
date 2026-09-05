@@ -4,35 +4,42 @@
 
 using namespace geode::prelude;
 
-// All the "customizable in the code" knobs live here in one place.
+// The values below are "objectType" tags GD itself passes into
+// PlayerObject::bumpPlayer / propellPlayer when a pad affects the player -
+// NOT level editor object IDs (those are a completely different numbering).
+// This is the actual mechanism the engine uses to react to pads, so hooking
+// off these means there's no proximity/hitbox guessing involved at all.
 namespace AutoClickPadConfig {
-    // Object IDs this feature reacts to - add or remove entries to support
-    // more (or fewer) pad types. Object IDs are easy to verify yourself:
-    // place the object in the level editor, select it, and its ID shows in
-    // the object info panel - these are best-effort defaults, adjust any
-    // that don't match your GD version.
-    constexpr int TARGET_OBJECT_IDS[] = {
-        35,    // Yellow Jump Pad
-        67,    // Pink (Purple) Jump Pad
-        1332,  // Red (S-shaped) Jump Pad
-       140, // Add more object IDs here as needed
-    };
-    constexpr std::size_t TARGET_OBJECT_ID_COUNT =
-        sizeof(TARGET_OBJECT_IDS) / sizeof(TARGET_OBJECT_IDS[0]);
+    // objectType values seen in bumpPlayer for the yellow/pink/red jump pads
+    constexpr int JUMP_PAD_TYPES[] = { 8, 9, 34 };
+    constexpr std::size_t JUMP_PAD_TYPE_COUNT =
+        sizeof(JUMP_PAD_TYPES) / sizeof(JUMP_PAD_TYPES[0]);
 
-    // Which input this simulates - 1 is jump / the primary click
-    constexpr int CLICK_BUTTON = 1;
+    // objectType value seen in propellPlayer for the gravity-flipping (blue) pad
+    constexpr int GRAVITY_PAD_TYPE = 10;
 
-    inline bool isTargetPad(int objectID) {
-        for (std::size_t i = 0; i < TARGET_OBJECT_ID_COUNT; i++) {
-            if (TARGET_OBJECT_IDS[i] == objectID) return true;
+    inline bool isJumpPadType(int objectType) {
+        for (std::size_t i = 0; i < JUMP_PAD_TYPE_COUNT; i++) {
+            if (JUMP_PAD_TYPES[i] == objectType) return true;
         }
         return false;
     }
 }
 
 namespace AutoClickPad {
-    inline bool isEnabled() {
-        return Mod::get()->getSavedValue<bool>("autoclick-pad-enabled", false);
+    inline bool jumpPadsEnabled() {
+        return Mod::get()->getSavedValue<bool>("autoclick-jumppads-enabled", false);
+    }
+    inline bool gravityPadsEnabled() {
+        return Mod::get()->getSavedValue<bool>("autoclick-gravitypads-enabled", false);
+    }
+
+    // Shared across both the PlayerObject hook and the per-tick reset hook:
+    // stays true for the rest of the current physics tick once a click has
+    // been queued, so a single pad touch can only ever cause one click even
+    // if more than one callback happens to fire for it.
+    inline bool& alreadyClickedThisTick() {
+        static bool value = false;
+        return value;
     }
 }
