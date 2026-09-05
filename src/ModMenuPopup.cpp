@@ -84,6 +84,10 @@ bool ModMenuPopup::init() {
             SpeedHack::apply();
         });
         page->addChild(speedInput);
+
+        // --- Noclip: per-player, reusing the same generic toggle system ---
+        addToggle(page, menu, "noclip-p1-enabled", "Noclip P1", 1, 0);
+        addToggle(page, menu, "noclip-p2-enabled", "Noclip P2", 1, 1);
     }
 
     // --- Cosmetic / Level / Creator: mostly placeholder grids, except
