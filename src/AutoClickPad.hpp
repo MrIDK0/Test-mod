@@ -1,6 +1,7 @@
 #pragma once
 #include <Geode/loader/Mod.hpp>
 #include <cstddef>
+#include <string>
 
 using namespace geode::prelude;
 
@@ -32,6 +33,30 @@ namespace AutoClickPad {
     }
     inline bool gravityPadsEnabled() {
         return Mod::get()->getSavedValue<bool>("autoclick-gravitypads-enabled", false);
+    }
+
+    // How many frames to hold the click for, same pattern as Speed Hack's
+    // text input - saved as a string, parsed and clamped here.
+    inline int getClickFrames() {
+        std::string valueStr = Mod::get()->getSavedValue<std::string>("autoclick-pad-frames", "1");
+        int frames = 1;
+        try {
+            frames = std::stoi(valueStr);
+        } catch (...) {
+            frames = 1;
+        }
+        if (frames < 1) frames = 1;
+        if (frames > 60) frames = 60; // guard against absurd hold times
+        return frames;
+    }
+
+    // queueButton's last parameter is a delay (in seconds) before that
+    // button event applies - this converts the frame count into that delay,
+    // assuming a 240Hz reference tick rate (GD's standard physics rate).
+    // If the actual hold time looks off in testing, this is the one
+    // conversion to double check.
+    inline float getClickHoldSeconds() {
+        return static_cast<float>(getClickFrames()) / 240.f;
     }
 
     // Shared across both the PlayerObject hook and the per-tick reset hook:
