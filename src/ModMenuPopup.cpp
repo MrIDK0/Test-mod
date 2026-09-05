@@ -87,7 +87,7 @@ bool ModMenuPopup::init() {
     }
 
     // --- Cosmetic / Level / Creator: mostly placeholder grids, except
-    // Level's first slot which is now the real Auto-Click Pad feature ---
+    // Level's first two rows which hold the real Auto-Click Pad feature ---
     for (int t = 1; t < TAB_COUNT; t++) {
         auto page = m_pages[t];
         auto menu = m_pageMenus[t];
@@ -95,10 +95,14 @@ bool ModMenuPopup::init() {
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 2; col++) {
                 bool isLevelRow0 = (t == 2 && row == 0);
+                bool isLevelRow1 = (t == 2 && row == 1); // handled separately below
                 if (isLevelRow0 && col == 0) {
                     addToggle(page, menu, "autoclick-jumppads-enabled", "Click Jump Pads", row, col);
                 } else if (isLevelRow0 && col == 1) {
                     addToggle(page, menu, "autoclick-gravitypads-enabled", "Click Gravity Pads", row, col);
+                } else if (isLevelRow1) {
+                    // skipped - a label + text input spanning this row is
+                    // added right after this loop instead
                 } else {
                     std::string key = std::string(TAB_KEYS[t]) + "-example-" + std::to_string(slot);
                     addToggle(page, menu, key, "Example Toggle", row, col);
@@ -106,6 +110,28 @@ bool ModMenuPopup::init() {
                 slot++;
             }
         }
+    }
+
+    // --- Level tab: how many frames to hold the click for ---
+    {
+        auto page = m_pages[2];
+        float y = GRID_TOP_Y - ROW_HEIGHT;
+
+        auto label = CCLabelBMFont::create("Click Frames", "bigFont.fnt");
+        label->setScale(0.35f);
+        label->setAnchorPoint({0.f, 0.5f});
+        label->setPosition({COL_X[0], y});
+        page->addChild(label);
+
+        auto input = TextInput::create(60.f, "1", "bigFont.fnt");
+        input->setFilter("0123456789");
+        input->setMaxCharCount(3);
+        input->setString(Mod::get()->getSavedValue<std::string>("autoclick-pad-frames", "1"));
+        input->setPosition({COL_X[1] + 15.f, y});
+        input->setCallback([](std::string const& text) {
+            Mod::get()->setSavedValue("autoclick-pad-frames", text);
+        });
+        page->addChild(input);
     }
 
     selectTab(0);
