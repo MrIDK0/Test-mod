@@ -50,9 +50,9 @@ class $modify(MyAutoClickPadPlayer, PlayerObject) {
         if (object && !AutoClickPad::alreadyClickedThisTick()) {
             int id = object->m_objectID;
             if (id == AutoClickPadConfig::GREEN_DASH_ORB_ID && AutoClickPad::jumpPadsEnabled()) {
-                queueJumpClick(AutoClickPad::getDashOrbHoldSeconds());
+                queueJumpClick(AutoClickPadConfig::getDashOrbHoldSeconds());
             } else if (id == AutoClickPadConfig::PURPLE_DASH_ORB_ID && AutoClickPad::gravityPadsEnabled()) {
-                queueJumpClick(AutoClickPad::getDashOrbHoldSeconds());
+                queueJumpClick(AutoClickPadConfig::getDashOrbHoldSeconds());
             }
         }
         PlayerObject::startDashing(object);
