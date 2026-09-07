@@ -100,6 +100,7 @@ bool ModMenuPopup::init() {
             for (int col = 0; col < 2; col++) {
                 bool isLevelRow0 = (t == 2 && row == 0);
                 bool isLevelRow1 = (t == 2 && row == 1); // handled separately below
+                bool isLevelCheckpointSlot = (t == 2 && row == 2 && col == 0);
                 if (isLevelRow0 && col == 0) {
                     addToggle(page, menu, "autoclick-jumppads-enabled", "Click Jump Pads", row, col);
                 } else if (isLevelRow0 && col == 1) {
@@ -107,6 +108,8 @@ bool ModMenuPopup::init() {
                 } else if (isLevelRow1) {
                     // skipped - a label + text input spanning this row is
                     // added right after this loop instead
+                } else if (isLevelCheckpointSlot) {
+                    addToggle(page, menu, "autocheckpoint-enabled", "Auto Checkpoint", row, col);
                 } else {
                     std::string key = std::string(TAB_KEYS[t]) + "-example-" + std::to_string(slot);
                     addToggle(page, menu, key, "Example Toggle", row, col);
