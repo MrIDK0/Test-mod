@@ -1,18 +1,17 @@
 #include <Geode/Geode.hpp>
+#include <Geode/modify/PlayLayer.hpp>
 #include "AutoCheckpoint.hpp"
-#include <Geode/modify/PlayerObject.hpp>
-#include <Geode/binding/PlayLayer.hpp>
 
 using namespace geode::prelude;
 
-class $modify(PlayerObject) {
+class $modify(FrameCheckpointPlayLayer, PlayLayer) {
     void update(float dt) {
-        PlayerObject::update(dt);
+        PlayLayer::update(dt);
 
-        auto pl = PlayLayer::get();
-        // Check if we are in PlayLayer, in practice mode, and this is player 1
-        if (pl && pl->m_isPracticeMode && !this->m_isDead && pl->m_player1 == this) {
-            pl->createCheckpoint();
+        if (this->m_isPracticeMode && this->m_player1 && !this->m_player1->m_isDead) {
+            // Directly dispatch the practice checkpoint action
+            this->handleButton(true, static_cast<int>(PlayerButton::PlaceCheckpoint), true);
+            this->handleButton(false, static_cast<int>(PlayerButton::PlaceCheckpoint), true);
         }
     }
 };
