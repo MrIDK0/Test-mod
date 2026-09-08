@@ -1,18 +1,18 @@
 #include <Geode/Geode.hpp>
-#include <Geode/modify/PlayLayer.hpp>
 #include "AutoCheckpoint.hpp"
+#include <Geode/modify/PlayerObject.hpp>
+#include <Geode/binding/PlayLayer.hpp>
 
 using namespace geode::prelude;
 
-class $modify(FrameCheckpointPlayLayer, PlayLayer) {
+class $modify(PlayerObject) {
     void update(float dt) {
-        // Run original game loop update first
-        PlayLayer::update(dt);
+        PlayerObject::update(dt);
 
-        // Check if practice mode is active, player exists, and player isn't dead
-        if (this->m_isPracticeMode && this->m_player1 && !this->m_player1->m_isDead) {
-            // Force checkpoint creation directly through the level manager
-            this->createCheckpoint();
+        auto pl = PlayLayer::get();
+        // Check if we are in PlayLayer, in practice mode, and this is player 1
+        if (pl && pl->m_isPracticeMode && !this->m_isDead && pl->m_player1 == this) {
+            pl->createCheckpoint();
         }
     }
 };
