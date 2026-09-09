@@ -1,0 +1,259 @@
+#include "ModMenuPopup.hpp"
+#include "SpeedHack.hpp"
+#include "ShowPosition.hpp"
+#include <sstream>
+#include <iomanip>
+
+namespace {
+    constexpr float POPUP_WIDTH   = 420.f;
+    constexpr float POPUP_HEIGHT  = 260.f;
+    constexpr float SIDEBAR_WIDTH = 90.f;
+
+    constexpr float GRID_TOP_Y  = 170.f;
+    constexpr float ROW_HEIGHT  = 34.f;
+    constexpr float COL_X[2]    = {40.f, 200.f};
+
+    constexpr const char* TAB_NAMES[ModMenuPopup::TAB_COUNT] = {
+        "Core", "Cosmetic", "Level", "Creator"
+    };
+    constexpr const char* TAB_KEYS[ModMenuPopup::TAB_COUNT] = {
+        "core", "cosmetic", "level", "creator"
+    };
+}
+
+bool ModMenuPopup::init() {
+    if (!Popup::init(POPUP_WIDTH, POPUP_HEIGHT)) return false;
+    this->setTitle("Mod Menu");
+
+    // --- Sidebar tabs ---
+    auto sidebarMenu = CCMenu::create();
+    sidebarMenu->setPosition({0.f, 0.f});
+    m_mainLayer->addChild(sidebarMenu);
+
+    float sidebarTop = 220.f;
+    float tabHeight = sidebarTop / TAB_COUNT;
+    for (int i = 0; i < TAB_COUNT; i++) {
+        float yPos = sidebarTop - tabHeight * i - tabHeight / 2.f;
+        addTabButton(sidebarMenu, i, TAB_NAMES[i], yPos);
+    }
+
+    // --- One page + one menu per tab. Only the active tab's page is
+    // visible AND its menu enabled, so hidden tabs can't intercept touches
+    // meant for the visible one. ---
+    for (int i = 0; i < TAB_COUNT; i++) {
+        auto page = CCNode::create();
+        page->setPosition({SIDEBAR_WIDTH, 0.f});
+        page->setVisible(i == 0);
+        m_mainLayer->addChild(page);
+        m_pages[i] = page;
+
+        auto pageMenu = CCMenu::create();
+        pageMenu->setPosition({0.f, 0.f});
+        pageMenu->setEnabled(i == 0);
+        page->addChild(pageMenu);
+        m_pageMenus[i] = pageMenu;
+    }
+
+    // --- Core tab: Speed Hack is the one real feature so far ---
+    {
+        auto page = m_pages[0];
+        auto menu = m_pageMenus[0];
+
+        auto speedToggle = CCMenuItemExt::createTogglerWithStandardSprites(
+            0.6f,
+            [](CCMenuItemToggler* toggle) {
+                bool state = !toggle->isToggled();
+                Mod::get()->setSavedValue("speedhack-enabled", state);
+                SpeedHack::apply();
+            }
+        );
+        speedToggle->toggle(Mod::get()->getSavedValue<bool>("speedhack-enabled", false));
+        speedToggle->setPosition({COL_X[0], GRID_TOP_Y});
+        menu->addChild(speedToggle);
+
+        auto speedLabel = CCLabelBMFont::create("Speed Hack", "bigFont.fnt");
+        speedLabel->setScale(0.35f);
+        speedLabel->setAnchorPoint({0.f, 0.5f});
+        speedLabel->setPosition({COL_X[0] + 20.f, GRID_TOP_Y});
+        page->addChild(speedLabel);
+
+        auto speedInput = TextInput::create(70.f, "1.0", "bigFont.fnt");
+        speedInput->setFilter("0123456789.");
+        speedInput->setMaxCharCount(6);
+        speedInput->setString(Mod::get()->getSavedValue<std::string>("speedhack-value", "1.0"));
+        speedInput->setPosition({COL_X[1] + 15.f, GRID_TOP_Y});
+        speedInput->setCallback([](std::string const& text) {
+            Mod::get()->setSavedValue("speedhack-value", text);
+            SpeedHack::apply();
+        });
+        page->addChild(speedInput);
+
+        // --- Noclip: per-player, reusing the same generic toggle system ---
+        addToggle(page, menu, "noclip-p1-enabled", "Noclip P1", 1, 0);
+        addToggle(page, menu, "noclip-p2-enabled", "Noclip P2", 1, 1);
+    }
+
+    // --- Cosmetic / Level / Creator: mostly placeholder grids, except
+    // Cosmetic's first row (Show Position) and Level's first two rows
+    // (Auto-Click Pad) which hold real features ---
+    for (int t = 1; t < TAB_COUNT; t++) {
+        auto page = m_pages[t];
+        auto menu = m_pageMenus[t];
+        int slot = 0;
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 2; col++) {
+                bool isCosmeticRow0 = (t == 1 && row == 0);
+                bool isCosmeticRow1 = (t == 1 && row == 1); // handled separately below
+                bool isLevelRow0 = (t == 2 && row == 0);
+                bool isLevelRow1 = (t == 2 && row == 1); // handled separately below
+                if (isCosmeticRow0 && col == 0) {
+                    addToggle(page, menu, "showpos-enabled", "Show Position", row, col);
+                } else if (isCosmeticRow0 && col == 1) {
+                    // skipped - the Copy Position button is added right
+                    // after this loop instead, since it isn't a toggle
+                } else if (isCosmeticRow1) {
+                    // skipped - the Decimals label + input is added right
+                    // after this loop instead
+                } else if (isLevelRow0 && col == 0) {
+                    addToggle(page, menu, "autoclick-jumppads-enabled", "Click Jump Pads", row, col);
+                } else if (isLevelRow0 && col == 1) {
+                    addToggle(page, menu, "autoclick-gravitypads-enabled", "Click Gravity Pads", row, col);
+                } else if (isLevelRow1) {
+                    // skipped - a label + text input spanning this row is
+                    // added right after this loop instead
+                } else {
+                    std::string key = std::string(TAB_KEYS[t]) + "-example-" + std::to_string(slot);
+                    addToggle(page, menu, key, "Example Toggle", row, col);
+                }
+                slot++;
+            }
+        }
+    }
+
+    // --- Cosmetic tab: Copy Position button ---
+    {
+        auto page = m_pages[1];
+        auto menu = m_pageMenus[1];
+        float y = GRID_TOP_Y;
+
+        auto copySprite = ButtonSprite::create("Copy Pos", "goldFont.fnt", "GJ_button_01.png", 0.5f);
+        auto copyBtn = CCMenuItemExt::createSpriteExtra(copySprite, [](CCMenuItemSpriteExtra*) {
+            auto playLayer = PlayLayer::get();
+            if (playLayer && playLayer->m_player1) {
+                auto pos = playLayer->m_player1->getPosition();
+                int decimals = ShowPosition::getDecimals();
+
+                std::ostringstream ss;
+                ss << std::fixed << std::setprecision(decimals);
+                ss << "X: " << pos.x << ", Y: " << pos.y;
+
+                geode::utils::clipboard::write(ss.str());
+                Notification::create("Copied to clipboard!", NotificationIcon::Success)->show();
+            } else {
+                Notification::create("No position available", NotificationIcon::Error)->show();
+            }
+        });
+        copyBtn->setPosition({COL_X[1] + 15.f, y});
+        menu->addChild(copyBtn);
+
+        // Decimal precision input, right below the toggle + copy button
+        float decY = GRID_TOP_Y - ROW_HEIGHT;
+
+        auto decLabel = CCLabelBMFont::create("Decimals", "bigFont.fnt");
+        decLabel->setScale(0.35f);
+        decLabel->setAnchorPoint({0.f, 0.5f});
+        decLabel->setPosition({COL_X[0], decY});
+        page->addChild(decLabel);
+
+        auto decInput = TextInput::create(60.f, "0", "bigFont.fnt");
+        decInput->setFilter("0123456789");
+        decInput->setMaxCharCount(2);
+        decInput->setString(Mod::get()->getSavedValue<std::string>("showpos-decimals", "0"));
+        decInput->setPosition({COL_X[1] + 15.f, decY});
+        decInput->setCallback([](std::string const& text) {
+            Mod::get()->setSavedValue("showpos-decimals", text);
+        });
+        page->addChild(decInput);
+    }
+
+    // --- Level tab: how many frames to hold the click for ---
+    {
+        auto page = m_pages[2];
+        float y = GRID_TOP_Y - ROW_HEIGHT;
+
+        auto label = CCLabelBMFont::create("Click Frames", "bigFont.fnt");
+        label->setScale(0.35f);
+        label->setAnchorPoint({0.f, 0.5f});
+        label->setPosition({COL_X[0], y});
+        page->addChild(label);
+
+        auto input = TextInput::create(60.f, "1", "bigFont.fnt");
+        input->setFilter("0123456789");
+        input->setMaxCharCount(3);
+        input->setString(Mod::get()->getSavedValue<std::string>("autoclick-pad-frames", "1"));
+        input->setPosition({COL_X[1] + 15.f, y});
+        input->setCallback([](std::string const& text) {
+            Mod::get()->setSavedValue("autoclick-pad-frames", text);
+        });
+        page->addChild(input);
+    }
+
+    selectTab(0);
+
+    return true;
+}
+
+void ModMenuPopup::addTabButton(CCMenu* sidebarMenu, int index, const std::string& label, float yPos) {
+    auto sprite = ButtonSprite::create(label.c_str());
+    sprite->setScale(0.6f);
+
+    auto btn = CCMenuItemExt::createSpriteExtra(sprite, [this, index](CCMenuItemSpriteExtra*) {
+        this->selectTab(index);
+    });
+    btn->setPosition({SIDEBAR_WIDTH / 2.f, yPos});
+    sidebarMenu->addChild(btn);
+    m_tabButtons[index] = btn;
+}
+
+void ModMenuPopup::addToggle(CCNode* page, CCMenu* pageMenu, const std::string& saveKey,
+                              const std::string& label, int row, int col) {
+    float x = COL_X[col];
+    float y = GRID_TOP_Y - row * ROW_HEIGHT;
+
+    // Every toggle, in every tab, saves/loads through this same path -
+    // that consistency is what makes the saving system reliable.
+    auto toggle = CCMenuItemExt::createTogglerWithStandardSprites(
+        0.6f,
+        [saveKey](CCMenuItemToggler* t) {
+            bool state = !t->isToggled();
+            Mod::get()->setSavedValue(saveKey, state);
+        }
+    );
+    toggle->toggle(Mod::get()->getSavedValue<bool>(saveKey, false));
+    toggle->setPosition({x, y});
+    pageMenu->addChild(toggle);
+
+    auto lbl = CCLabelBMFont::create(label.c_str(), "bigFont.fnt");
+    lbl->setScale(0.35f);
+    lbl->setAnchorPoint({0.f, 0.5f});
+    lbl->setPosition({x + 20.f, y});
+    page->addChild(lbl);
+}
+
+void ModMenuPopup::selectTab(int index) {
+    for (int i = 0; i < TAB_COUNT; i++) {
+        if (m_pages[i])      m_pages[i]->setVisible(i == index);
+        if (m_pageMenus[i])  m_pageMenus[i]->setEnabled(i == index);
+        if (m_tabButtons[i]) m_tabButtons[i]->setOpacity(i == index ? 255 : 140);
+    }
+}
+
+ModMenuPopup* ModMenuPopup::create() {
+    auto ret = new ModMenuPopup();
+    if (ret->init()) {
+        ret->autorelease();
+        return ret;
+    }
+    delete ret;
+    return nullptr;
+}
