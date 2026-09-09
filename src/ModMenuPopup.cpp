@@ -91,25 +91,29 @@ bool ModMenuPopup::init() {
     }
 
     // --- Cosmetic / Level / Creator: mostly placeholder grids, except
-    // Level's first two rows which hold the real Auto-Click Pad feature ---
+    // Cosmetic's first row (Show Position) and Level's first two rows
+    // (Auto-Click Pad) which hold real features ---
     for (int t = 1; t < TAB_COUNT; t++) {
         auto page = m_pages[t];
         auto menu = m_pageMenus[t];
         int slot = 0;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 2; col++) {
+                bool isCosmeticRow0 = (t == 1 && row == 0);
                 bool isLevelRow0 = (t == 2 && row == 0);
                 bool isLevelRow1 = (t == 2 && row == 1); // handled separately below
-                bool isLevelCheckpointSlot = (t == 2 && row == 2 && col == 0);
-                if (isLevelRow0 && col == 0) {
+                if (isCosmeticRow0 && col == 0) {
+                    addToggle(page, menu, "showpos-enabled", "Show Position", row, col);
+                } else if (isCosmeticRow0 && col == 1) {
+                    // skipped - the Copy Position button is added right
+                    // after this loop instead, since it isn't a toggle
+                } else if (isLevelRow0 && col == 0) {
                     addToggle(page, menu, "autoclick-jumppads-enabled", "Click Jump Pads", row, col);
                 } else if (isLevelRow0 && col == 1) {
                     addToggle(page, menu, "autoclick-gravitypads-enabled", "Click Gravity Pads", row, col);
                 } else if (isLevelRow1) {
                     // skipped - a label + text input spanning this row is
                     // added right after this loop instead
-                } else if (isLevelCheckpointSlot) {
-                    addToggle(page, menu, "autocheckpoint-enabled", "Auto Checkpoint", row, col);
                 } else {
                     std::string key = std::string(TAB_KEYS[t]) + "-example-" + std::to_string(slot);
                     addToggle(page, menu, key, "Example Toggle", row, col);
@@ -117,6 +121,29 @@ bool ModMenuPopup::init() {
                 slot++;
             }
         }
+    }
+
+    // --- Cosmetic tab: Copy Position button ---
+    {
+        auto page = m_pages[1];
+        auto menu = m_pageMenus[1];
+        float y = GRID_TOP_Y;
+
+        auto copySprite = ButtonSprite::create("Copy Pos", "goldFont.fnt", "GJ_button_01.png", 0.5f);
+        auto copyBtn = CCMenuItemExt::createSpriteExtra(copySprite, [](CCMenuItemSpriteExtra*) {
+            auto playLayer = PlayLayer::get();
+            if (playLayer && playLayer->m_player1) {
+                auto pos = playLayer->m_player1->getPosition();
+                std::string copyStr = "X: " + std::to_string(static_cast<int>(pos.x)) +
+                                       ", Y: " + std::to_string(static_cast<int>(pos.y));
+                geode::utils::clipboard::write(copyStr);
+                Notification::create("Copied to clipboard!", NotificationIcon::Success)->show();
+            } else {
+                Notification::create("No position available", NotificationIcon::Error)->show();
+            }
+        });
+        copyBtn->setPosition({COL_X[1] + 15.f, y});
+        menu->addChild(copyBtn);
     }
 
     // --- Level tab: how many frames to hold the click for ---
