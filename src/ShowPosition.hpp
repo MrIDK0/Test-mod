@@ -20,7 +20,7 @@ namespace ShowPosition {
             decimals = 0;
         }
         if (decimals < 0) decimals = 0;
-        if (decimals > 10) decimals = 10; // sane guard
+        if (decimals > 1000) decimals = 1000; // sane guard
         return decimals;
     }
 }
