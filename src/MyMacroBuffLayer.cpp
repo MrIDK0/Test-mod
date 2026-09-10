@@ -109,7 +109,7 @@ class $modify(MacroBuffGJBaseGameLayer, GJBaseGameLayer) {
             );
         }
 
-        if (std::abs(vy) >= 1.0f) {
+        if (std::abs(vy) >= 5.0f) {
             if (vy >= 0.f) {
                 spawnSpikeAt(
                     playerRect.origin.x + playerRect.size.width + 0.0001f,
