@@ -99,26 +99,26 @@ class $modify(MacroBuffGJBaseGameLayer, GJBaseGameLayer) {
 
         if (vy >= 0.f) {
             spawnSpikeAt(
-                playerRect.origin.x - m_fields->spikeSize.width - 0.1f,
-                playerRect.origin.y + playerRect.size.height + 0.1f
+                playerRect.origin.x - m_fields->spikeSize.width - 0.0001f,
+                playerRect.origin.y + playerRect.size.height + 0.0001f
             );
         } else {
             spawnSpikeAt(
-                playerRect.origin.x + playerRect.size.width + 0.1f,
-                playerRect.origin.y + playerRect.size.height + 0.1f
+                playerRect.origin.x + playerRect.size.width + 0.0001f,
+                playerRect.origin.y + playerRect.size.height + 0.0001f
             );
         }
 
-        if (std::abs(vy) >= 5.0f) {
+        if (std::abs(vy) >= 1.0f) {
             if (vy >= 0.f) {
                 spawnSpikeAt(
-                    playerRect.origin.x + playerRect.size.width + 0.1f,
-                    playerRect.origin.y - m_fields->spikeSize.height - 0.1f
+                    playerRect.origin.x + playerRect.size.width + 0.0001f,
+                    playerRect.origin.y - m_fields->spikeSize.height - 0.0001f
                 );
             } else {
                 spawnSpikeAt(
-                    playerRect.origin.x - m_fields->spikeSize.width - 0.1f,
-                    playerRect.origin.y - m_fields->spikeSize.height - 0.1f
+                    playerRect.origin.x - m_fields->spikeSize.width - 0.0001f,
+                    playerRect.origin.y - m_fields->spikeSize.height - 0.0001f
                 );
             }
         }
