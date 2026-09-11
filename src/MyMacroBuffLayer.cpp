@@ -5,10 +5,18 @@
 
 using namespace geode::prelude;
 
+// Placeholder default for the second object type placed alongside the
+// spike at every trail point - change to whatever object ID you actually
+// want (verify it in the editor's object info panel).
+namespace MacroBuffConfig {
+    constexpr int SECOND_OBJECT_ID = 1;
+}
+
 // Editor-only helper: while playtesting in the level editor, this tracks a
 // rolling window of the player's recent hitbox positions and automatically
-// places spikes tracing the jump arc, then removes any that the player's
-// own trail passes back through as you refine the jump on retest.
+// places a spike plus a second object tracing the jump arc, then removes
+// any of either that the player's own trail passes back through as you
+// refine the jump on retest.
 //
 // Experimental - works best on pure jumps in Cube/Robot. Pads and gravity
 // shifts break the trail's assumptions.
@@ -17,25 +25,35 @@ class $modify(MacroBuffGJBaseGameLayer, GJBaseGameLayer) {
         bool cached = false;
         CCPoint spikeOffset;
         CCSize spikeSize;
+        CCPoint secondOffset;
+        CCSize secondSize;
 
         RingBuffer<CCRect> player_trail{480};
         RingBuffer<GameObject*> spikes{800};
+        RingBuffer<GameObject*> secondObjects{800};
         int frame = 0;
     };
 
-    void cacheSpike() {
+    void cacheObjects() {
         if (m_fields->cached) return;
         auto lel = LevelEditorLayer::get();
         if (!lel) return;
 
         auto temp = lel->createObject(8, CCPoint(0.f, 0.f), true);
         if (!temp) return;
-
         CCRect r = temp->getObjectRect();
         m_fields->spikeOffset = temp->getPosition() - r.origin;
         m_fields->spikeSize = r.size;
-
         lel->removeObject(temp, true);
+
+        auto temp2 = lel->createObject(MacroBuffConfig::SECOND_OBJECT_ID, CCPoint(0.f, 0.f), true);
+        if (temp2) {
+            CCRect r2 = temp2->getObjectRect();
+            m_fields->secondOffset = temp2->getPosition() - r2.origin;
+            m_fields->secondSize = r2.size;
+            lel->removeObject(temp2, true);
+        }
+
         m_fields->cached = true;
     }
 
@@ -47,7 +65,7 @@ class $modify(MacroBuffGJBaseGameLayer, GJBaseGameLayer) {
         auto lel = LevelEditorLayer::get();
         if (!lel || !m_player1) return;
 
-        cacheSpike();
+        cacheObjects();
         if (!m_fields->cached) return;
 
         CCRect playerRect = m_player1->getObjectRect();
@@ -60,23 +78,28 @@ class $modify(MacroBuffGJBaseGameLayer, GJBaseGameLayer) {
                     r2.origin.y + r2.size.height <= r1.origin.y);
         };
 
-        m_fields->spikes.for_each([&](GameObject*& spk) {
-            if (!spk) return;
+        auto cleanupIfTouched = [&](RingBuffer<GameObject*>& buffer) {
+            buffer.for_each([&](GameObject*& obj) {
+                if (!obj) return;
 
-            CCRect currentSpikeRect = spk->getObjectRect();
-            bool shouldRemove = false;
+                CCRect currentRect = obj->getObjectRect();
+                bool shouldRemove = false;
 
-            m_fields->player_trail.for_each([&](const auto& trailRect) {
-                if (!shouldRemove && checkIntersects(currentSpikeRect, trailRect)) {
-                    shouldRemove = true;
+                m_fields->player_trail.for_each([&](const auto& trailRect) {
+                    if (!shouldRemove && checkIntersects(currentRect, trailRect)) {
+                        shouldRemove = true;
+                    }
+                });
+
+                if (shouldRemove) {
+                    lel->removeObject(obj, true);
+                    obj = nullptr;
                 }
             });
+        };
 
-            if (shouldRemove) {
-                lel->removeObject(spk, true);
-                spk = nullptr;
-            }
-        });
+        cleanupIfTouched(m_fields->spikes);
+        cleanupIfTouched(m_fields->secondObjects);
 
         if (m_player1->m_isOnGround) return;
 
@@ -90,10 +113,17 @@ class $modify(MacroBuffGJBaseGameLayer, GJBaseGameLayer) {
 
         auto spawnSpikeAt = [&](float originX, float originY) {
             CCPoint targetOrigin(originX, originY);
+
             CCPoint finalPos = targetOrigin + m_fields->spikeOffset;
             auto obj = lel->createObject(8, finalPos, true);
             if (obj) {
                 m_fields->spikes.push(obj);
+            }
+
+            CCPoint secondFinalPos = targetOrigin + m_fields->secondOffset;
+            auto obj2 = lel->createObject(MacroBuffConfig::SECOND_OBJECT_ID, secondFinalPos, true);
+            if (obj2) {
+                m_fields->secondObjects.push(obj2);
             }
         };
 
@@ -132,6 +162,7 @@ class $modify(MacroBuffEditorLayer, LevelEditorLayer) {
         if (auto gjbgl = static_cast<MacroBuffGJBaseGameLayer*>(GJBaseGameLayer::get())) {
             gjbgl->m_fields->player_trail.clear();
             gjbgl->m_fields->spikes.clear();
+            gjbgl->m_fields->secondObjects.clear();
             gjbgl->m_fields->frame = 0;
         }
     }
