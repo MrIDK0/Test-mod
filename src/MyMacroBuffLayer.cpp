@@ -9,7 +9,7 @@ using namespace geode::prelude;
 // spike at every trail point - change to whatever object ID you actually
 // want (verify it in the editor's object info panel).
 namespace MacroBuffConfig {
-    constexpr int SECOND_OBJECT_ID = 1;
+    constexpr int SECOND_OBJECT_ID = 1817;
 }
 
 // Editor-only helper: while playtesting in the level editor, this tracks a
