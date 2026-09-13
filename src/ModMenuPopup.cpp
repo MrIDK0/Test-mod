@@ -263,3 +263,164 @@ ModMenuPopup* ModMenuPopup::create() {
     delete ret;
     return nullptr;
 }
+                bool isCosmeticRow0 = (t == 1 && row == 0);
+                bool isCosmeticRow1 = (t == 1 && row == 1); // handled separately below
+                bool isCosmeticHitboxSlot = (t == 1 && row == 2 && col == 0);
+                bool isLevelRow0 = (t == 2 && row == 0);
+                bool isLevelRow1 = (t == 2 && row == 1); // handled separately below
+                bool isCreatorSlot0 = (t == 3 && row == 0 && col == 0);
+                if (isCosmeticRow0 && col == 0) {
+                    addToggle(page, menu, "showpos-enabled", "Show Position", row, col);
+                } else if (isCosmeticRow0 && col == 1) {
+                    // skipped - the Copy Position button is added right
+                    // after this loop instead, since it isn't a toggle
+                } else if (isCosmeticRow1) {
+                    // skipped - the Decimals label + input is added right
+                    // after this loop instead
+                } else if (isCosmeticHitboxSlot) {
+                    addToggle(page, menu, "showhitboxes-enabled", "Show Hitboxes", row, col);
+                } else if (isLevelRow0 && col == 0) {
+                    addToggle(page, menu, "autoclick-jumppads-enabled", "Click Jump Pads", row, col);
+                } else if (isLevelRow0 && col == 1) {
+                    addToggle(page, menu, "autoclick-gravitypads-enabled", "Click Gravity Pads", row, col);
+                } else if (isLevelRow1) {
+                    // skipped - a label + text input spanning this row is
+                    // added right after this loop instead
+                } else if (isCreatorSlot0) {
+                    addToggle(page, menu, "macrobuff-enabled", "Macro Buff", row, col);
+                } else {
+                    std::string key = std::string(TAB_KEYS[t]) + "-example-" + std::to_string(slot);
+                    addToggle(page, menu, key, "Example Toggle", row, col);
+                }
+                slot++;
+            }
+        }
+    }
+
+    // --- Cosmetic tab: Copy Position button ---
+    {
+        auto page = m_pages[1];
+        auto menu = m_pageMenus[1];
+        float y = GRID_TOP_Y;
+
+        auto copySprite = ButtonSprite::create("Copy Pos", "goldFont.fnt", "GJ_button_01.png", 0.5f);
+        auto copyBtn = CCMenuItemExt::createSpriteExtra(copySprite, [](CCMenuItemSpriteExtra*) {
+            auto playLayer = PlayLayer::get();
+            if (playLayer && playLayer->m_player1) {
+                auto pos = playLayer->m_player1->getPosition();
+                int decimals = ShowPosition::getDecimals();
+
+                std::ostringstream ss;
+                ss << std::fixed << std::setprecision(decimals);
+                ss << "X: " << pos.x << ", Y: " << pos.y;
+
+                geode::utils::clipboard::write(ss.str());
+                Notification::create("Copied to clipboard!", NotificationIcon::Success)->show();
+            } else {
+                Notification::create("No position available", NotificationIcon::Error)->show();
+            }
+        });
+        copyBtn->setPosition({COL_X[1] + 15.f, y});
+        menu->addChild(copyBtn);
+
+        // Decimal precision input, right below the toggle + copy button
+        float decY = GRID_TOP_Y - ROW_HEIGHT;
+
+        auto decLabel = CCLabelBMFont::create("Decimals", "bigFont.fnt");
+        decLabel->setScale(0.35f);
+        decLabel->setAnchorPoint({0.f, 0.5f});
+        decLabel->setPosition({COL_X[0], decY});
+        page->addChild(decLabel);
+
+        auto decInput = TextInput::create(60.f, "0", "bigFont.fnt");
+        decInput->setFilter("0123456789");
+        decInput->setMaxCharCount(2);
+        decInput->setString(Mod::get()->getSavedValue<std::string>("showpos-decimals", "0"));
+        decInput->setPosition({COL_X[1] + 15.f, decY});
+        decInput->setCallback([](std::string const& text) {
+            Mod::get()->setSavedValue("showpos-decimals", text);
+        });
+        page->addChild(decInput);
+    }
+
+    // --- Level tab: how many frames to hold the click for ---
+    {
+        auto page = m_pages[2];
+        float y = GRID_TOP_Y - ROW_HEIGHT;
+
+        auto label = CCLabelBMFont::create("Click Frames", "bigFont.fnt");
+        label->setScale(0.35f);
+        label->setAnchorPoint({0.f, 0.5f});
+        label->setPosition({COL_X[0], y});
+        page->addChild(label);
+
+        auto input = TextInput::create(60.f, "1", "bigFont.fnt");
+        input->setFilter("0123456789");
+        input->setMaxCharCount(3);
+        input->setString(Mod::get()->getSavedValue<std::string>("autoclick-pad-frames", "1"));
+        input->setPosition({COL_X[1] + 15.f, y});
+        input->setCallback([](std::string const& text) {
+            Mod::get()->setSavedValue("autoclick-pad-frames", text);
+        });
+        page->addChild(input);
+    }
+
+    selectTab(0);
+
+    return true;
+}
+
+void ModMenuPopup::addTabButton(CCMenu* sidebarMenu, int index, const std::string& label, float yPos) {
+    auto sprite = ButtonSprite::create(label.c_str());
+    sprite->setScale(0.6f);
+
+    auto btn = CCMenuItemExt::createSpriteExtra(sprite, [this, index](CCMenuItemSpriteExtra*) {
+        this->selectTab(index);
+    });
+    btn->setPosition({SIDEBAR_WIDTH / 2.f, yPos});
+    sidebarMenu->addChild(btn);
+    m_tabButtons[index] = btn;
+}
+
+void ModMenuPopup::addToggle(CCNode* page, CCMenu* pageMenu, const std::string& saveKey,
+                              const std::string& label, int row, int col) {
+    float x = COL_X[col];
+    float y = GRID_TOP_Y - row * ROW_HEIGHT;
+
+    // Every toggle, in every tab, saves/loads through this same path -
+    // that consistency is what makes the saving system reliable.
+    auto toggle = CCMenuItemExt::createTogglerWithStandardSprites(
+        0.6f,
+        [saveKey](CCMenuItemToggler* t) {
+            bool state = !t->isToggled();
+            Mod::get()->setSavedValue(saveKey, state);
+        }
+    );
+    toggle->toggle(Mod::get()->getSavedValue<bool>(saveKey, false));
+    toggle->setPosition({x, y});
+    pageMenu->addChild(toggle);
+
+    auto lbl = CCLabelBMFont::create(label.c_str(), "bigFont.fnt");
+    lbl->setScale(0.35f);
+    lbl->setAnchorPoint({0.f, 0.5f});
+    lbl->setPosition({x + 20.f, y});
+    page->addChild(lbl);
+}
+
+void ModMenuPopup::selectTab(int index) {
+    for (int i = 0; i < TAB_COUNT; i++) {
+        if (m_pages[i])      m_pages[i]->setVisible(i == index);
+        if (m_pageMenus[i])  m_pageMenus[i]->setEnabled(i == index);
+        if (m_tabButtons[i]) m_tabButtons[i]->setOpacity(i == index ? 255 : 140);
+    }
+}
+
+ModMenuPopup* ModMenuPopup::create() {
+    auto ret = new ModMenuPopup();
+    if (ret->init()) {
+        ret->autorelease();
+        return ret;
+    }
+    delete ret;
+    return nullptr;
+}
