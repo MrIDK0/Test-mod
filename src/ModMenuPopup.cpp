@@ -104,6 +104,7 @@ bool ModMenuPopup::init() {
             for (int col = 0; col < 2; col++) {
                 bool isCosmeticRow0 = (t == 1 && row == 0);
                 bool isCosmeticRow1 = (t == 1 && row == 1); // handled separately below
+                bool isCosmeticHitboxSlot = (t == 1 && row == 2 && col == 0);
                 bool isLevelRow0 = (t == 2 && row == 0);
                 bool isLevelRow1 = (t == 2 && row == 1); // handled separately below
                 bool isCreatorSlot0 = (t == 3 && row == 0 && col == 0);
@@ -115,6 +116,8 @@ bool ModMenuPopup::init() {
                 } else if (isCosmeticRow1) {
                     // skipped - the Decimals label + input is added right
                     // after this loop instead
+                } else if (isCosmeticHitboxSlot) {
+                    addToggle(page, menu, "showhitboxes-enabled", "Show Hitboxes", row, col);
                 } else if (isLevelRow0 && col == 0) {
                     addToggle(page, menu, "autoclick-jumppads-enabled", "Click Jump Pads", row, col);
                 } else if (isLevelRow0 && col == 1) {
