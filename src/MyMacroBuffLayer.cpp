@@ -104,7 +104,7 @@ class $modify(MacroBuffGJBaseGameLayer, GJBaseGameLayer) {
         if (m_player1->m_isOnGround) return;
 
         m_fields->frame++;
-        if (m_fields->frame < 5) {
+        if (m_fields->frame < 2) {
             return;
         }
         m_fields->frame = 0;
