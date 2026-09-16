@@ -118,6 +118,8 @@ bool ModMenuPopup::init() {
                     // after this loop instead
                 } else if (isCosmeticHitboxSlot) {
                     addToggle(page, menu, "showhitboxes-enabled", "Show Hitboxes", row, col);
+                } else if (t == 1 && row == 2 && col == 1) {
+                    addToggle(page, menu, "showhitboxes-trail-enabled", "Draw Trail", row, col);
                 } else if (isLevelRow0 && col == 0) {
                     addToggle(page, menu, "autoclick-jumppads-enabled", "Click Jump Pads", row, col);
                 } else if (isLevelRow0 && col == 1) {
@@ -180,6 +182,29 @@ bool ModMenuPopup::init() {
             Mod::get()->setSavedValue("showpos-decimals", text);
         });
         page->addChild(decInput);
+
+        // Trail length input, its own row below Decimals
+        float trailY = GRID_TOP_Y - 3.f * ROW_HEIGHT;
+
+        auto trailLabel = CCLabelBMFont::create("Trail Length", "bigFont.fnt");
+        trailLabel->setScale(0.35f);
+        trailLabel->setAnchorPoint({0.f, 0.5f});
+        trailLabel->setPosition({COL_X[0], trailY});
+        page->addChild(trailLabel);
+
+        auto trailInput = TextInput::create(70.f, "240", "bigFont.fnt");
+        trailInput->setFilter("0123456789");
+        trailInput->setMaxCharCount(4);
+        trailInput->setString(Mod::get()->getSavedValue<std::string>("showhitboxes-trail-length", "240"));
+        trailInput->setPosition({COL_X[1] + 15.f, trailY});
+        trailInput->setCallback([](std::string const& text) {
+            Mod::get()->setSavedValue("showhitboxes-trail-length", text);
+        });
+        page->addChild(trailInput);
+
+        // Fill Hitboxes / Only On Death - their own row below Trail Length
+        addToggle(page, menu, "showhitboxes-fill-enabled", "Fill Hitboxes", 4, 0);
+        addToggle(page, menu, "showhitboxes-onlyondeath-enabled", "Only On Death", 4, 1);
     }
 
     // --- Level tab: how many frames to hold the click for ---
@@ -263,3 +288,4 @@ ModMenuPopup* ModMenuPopup::create() {
     delete ret;
     return nullptr;
 }
+
