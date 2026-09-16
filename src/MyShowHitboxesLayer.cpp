@@ -10,16 +10,16 @@ using namespace geode::prelude;
 
 namespace {
     constexpr ccColor4F DANGER_COLOR       = {1.f, 0.f, 0.f, 1.f};
-    constexpr ccColor4F SOLID_COLOR        = {0.f, 0.25f, 1.f, 1.f};
+    constexpr ccColor4F SOLID_COLOR        = {0.f, 0.f, 1.f, 1.f};
     constexpr ccColor4F PASSABLE_COLOR     = {0.f, 1.f, 1.f, 1.f};
-    constexpr ccColor4F TRIGGER_COLOR      = {1.f, 0.f, 0.9f, 1.f};
+    constexpr ccColor4F TRIGGER_COLOR      = {1.f, 0.f, 1.f, 1.f};
     constexpr ccColor4F OTHER_COLOR        = {0.f, 1.f, 0.f, 1.f};
     constexpr ccColor4F PLAYER_COLOR       = {1.f, 0.f, 0.f, 1.f};
-    constexpr ccColor4F PLAYER_INNER_COLOR = {0.f, 0.25f, 1.f, 1.f};
+    constexpr ccColor4F PLAYER_INNER_COLOR = {0.f, 0.f, 1.f, 1.f};
     constexpr ccColor4F TRAIL_COLOR        = {1.f, 1.f, 0.f, 1.f};
-    constexpr ccColor4F TRAIL_INNER_COLOR  = {1.f, 0.f, 0.f, 1.f};
-    constexpr float BORDER_WIDTH = 0.25f;
-    constexpr float FILL_ALPHA   = 0.2f;
+    constexpr ccColor4F TRAIL_INNER_COLOR  = {0.f, 0.f, 1.f, 1.f};
+    constexpr float BORDER_WIDTH = 0.4f;
+    constexpr float FILL_ALPHA   = 0.4f;
 
     // How long hitboxes/trail stay visible after death when "Only On
     // Death" is enabled.
