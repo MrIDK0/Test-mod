@@ -80,7 +80,7 @@ namespace {
         for (int i = 0; i < 4; i++) {
             float x = local[i].x * c - local[i].y * s;
             float y = local[i].x * s + local[i].y * c;
-            result[i] = {center.x + x, center.y + y};
+            result[i] = CCPoint(center.x + x, center.y + y);
         }
         return result;
     }
