@@ -39,9 +39,7 @@ bool ModMenuPopup::init() {
         addTabButton(sidebarMenu, i, TAB_NAMES[i], yPos);
     }
 
-    // --- One page + one menu per tab. Only the active tab's page is
-    // visible AND its menu enabled, so hidden tabs can't intercept touches
-    // meant for the visible one. ---
+    // --- One page + one menu per tab ---
     for (int i = 0; i < TAB_COUNT; i++) {
         auto page = CCNode::create();
         page->setPosition({SIDEBAR_WIDTH, 0.f});
@@ -56,7 +54,7 @@ bool ModMenuPopup::init() {
         m_pageMenus[i] = pageMenu;
     }
 
-    // --- Core tab: Speed Hack is the one real feature so far ---
+    // --- Core tab ---
     {
         auto page = m_pages[0];
         auto menu = m_pageMenus[0];
@@ -90,14 +88,11 @@ bool ModMenuPopup::init() {
         });
         page->addChild(speedInput);
 
-        // --- Noclip: per-player, reusing the same generic toggle system ---
         addToggle(page, menu, "noclip-p1-enabled", "Noclip P1", 1, 0);
         addToggle(page, menu, "noclip-p2-enabled", "Noclip P2", 1, 1);
     }
 
-    // --- Cosmetic / Level / Creator: mostly placeholder grids, except
-    // Cosmetic's first row (Show Position) and Level's first two rows
-    // (Auto-Click Pad) which hold real features ---
+    // --- Placeholder grids ---
     for (int t = 1; t < TAB_COUNT; t++) {
         auto page = m_pages[t];
         auto menu = m_pageMenus[t];
@@ -105,19 +100,17 @@ bool ModMenuPopup::init() {
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 2; col++) {
                 bool isCosmeticRow0 = (t == 1 && row == 0);
-                bool isCosmeticRow1 = (t == 1 && row == 1); // handled separately below
+                bool isCosmeticRow1 = (t == 1 && row == 1);
                 bool isCosmeticHitboxSlot = (t == 1 && row == 2 && col == 0);
                 bool isLevelRow0 = (t == 2 && row == 0);
-                bool isLevelRow1 = (t == 2 && row == 1); // handled separately below
+                bool isLevelRow1 = (t == 2 && row == 1);
                 bool isCreatorSlot0 = (t == 3 && row == 0 && col == 0);
                 if (isCosmeticRow0 && col == 0) {
                     addToggle(page, menu, "showpos-enabled", "Show Position", row, col);
                 } else if (isCosmeticRow0 && col == 1) {
-                    // skipped - the Copy Position button is added right
-                    // after this loop instead, since it isn't a toggle
+                    // skipped
                 } else if (isCosmeticRow1) {
-                    // skipped - the Decimals label + input is added right
-                    // after this loop instead
+                    // skipped
                 } else if (isCosmeticHitboxSlot) {
                     addToggle(page, menu, "showhitboxes-enabled", "Show Hitboxes", row, col);
                 } else if (t == 1 && row == 2 && col == 1) {
@@ -127,8 +120,7 @@ bool ModMenuPopup::init() {
                 } else if (isLevelRow0 && col == 1) {
                     addToggle(page, menu, "autoclick-gravitypads-enabled", "Click Gravity Pads", row, col);
                 } else if (isLevelRow1) {
-                    // skipped - a label + text input spanning this row is
-                    // added right after this loop instead
+                    // skipped
                 } else if (isCreatorSlot0) {
                     addToggle(page, menu, "macrobuff-enabled", "Macro Buff", row, col);
                 } else {
@@ -140,7 +132,7 @@ bool ModMenuPopup::init() {
         }
     }
 
-    // --- Cosmetic tab: Copy Position button ---
+    // --- Cosmetic tab ---
     {
         auto page = m_pages[1];
         auto menu = m_pageMenus[1];
@@ -166,7 +158,6 @@ bool ModMenuPopup::init() {
         copyBtn->setPosition({COL_X[1] + 15.f, y});
         menu->addChild(copyBtn);
 
-        // Decimal precision input, right below the toggle + copy button
         float decY = GRID_TOP_Y - ROW_HEIGHT;
 
         auto decLabel = CCLabelBMFont::create("Decimals", "bigFont.fnt");
@@ -185,7 +176,6 @@ bool ModMenuPopup::init() {
         });
         page->addChild(decInput);
 
-        // Trail length input, its own row below Decimals
         float trailY = GRID_TOP_Y - 3.f * ROW_HEIGHT;
 
         auto trailLabel = CCLabelBMFont::create("Trail Length", "bigFont.fnt");
@@ -204,11 +194,9 @@ bool ModMenuPopup::init() {
         });
         page->addChild(trailInput);
 
-        // Fill Hitboxes / Only On Death - their own row below Trail Length
         addToggle(page, menu, "showhitboxes-fill-enabled", "Fill Hitboxes", 4, 0);
         addToggle(page, menu, "showhitboxes-onlyondeath-enabled", "Only On Death", 4, 1);
 
-        // Opens the dedicated per-category color/border/opacity sub-popup
         float colorsY = GRID_TOP_Y - 5.f * ROW_HEIGHT;
         auto colorsSprite = ButtonSprite::create("Hitbox Colors...", "goldFont.fnt", "GJ_button_01.png", 0.5f);
         auto colorsBtn = CCMenuItemExt::createSpriteExtra(colorsSprite, [](CCMenuItemSpriteExtra*) {
@@ -218,9 +206,10 @@ bool ModMenuPopup::init() {
         menu->addChild(colorsBtn);
     }
 
-    // --- Level tab: how many frames to hold the click for ---
+    // --- Level tab ---
     {
         auto page = m_pages[2];
+        auto menu = m_pageMenus[2]; // Fixed: declared menu reference for level tab
         float y = GRID_TOP_Y - ROW_HEIGHT;
 
         auto label = CCLabelBMFont::create("Click Frames", "bigFont.fnt");
@@ -239,11 +228,8 @@ bool ModMenuPopup::init() {
         });
         page->addChild(input);
 
-        // Show Trajectory toggle + its own settings sub-popup
-
-        addToggle(page, m_buttonMenu, "trajectory-enabled", "Show Trajectory", 2, 0);
-m_buttonMenu->addChild(trajBtn);
-
+        // Show Trajectory toggle + settings button
+        addToggle(page, menu, "trajectory-enabled", "Show Trajectory", 2, 0);
 
         float trajBtnY = GRID_TOP_Y - 2.f * ROW_HEIGHT;
         auto trajSprite = ButtonSprite::create("Settings...", "goldFont.fnt", "GJ_button_01.png", 0.4f);
@@ -276,8 +262,6 @@ void ModMenuPopup::addToggle(CCNode* page, CCMenu* pageMenu, const std::string& 
     float x = COL_X[col];
     float y = GRID_TOP_Y - row * ROW_HEIGHT;
 
-    // Every toggle, in every tab, saves/loads through this same path -
-    // that consistency is what makes the saving system reliable.
     auto toggle = CCMenuItemExt::createTogglerWithStandardSprites(
         0.6f,
         [saveKey](CCMenuItemToggler* t) {
@@ -313,3 +297,4 @@ ModMenuPopup* ModMenuPopup::create() {
     delete ret;
     return nullptr;
 }
+
