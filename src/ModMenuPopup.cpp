@@ -2,6 +2,7 @@
 #include "SpeedHack.hpp"
 #include "ShowPosition.hpp"
 #include "HitboxColorsPopup.hpp"
+#include "TrajectorySettingsPopup.hpp"
 #include <sstream>
 #include <iomanip>
 
@@ -237,6 +238,17 @@ bool ModMenuPopup::init() {
             Mod::get()->setSavedValue("autoclick-pad-frames", text);
         });
         page->addChild(input);
+
+        // Show Trajectory toggle + its own settings sub-popup
+        addToggle(page, menu, "trajectory-enabled", "Show Trajectory", 2, 0);
+
+        float trajBtnY = GRID_TOP_Y - 2.f * ROW_HEIGHT;
+        auto trajSprite = ButtonSprite::create("Settings...", "goldFont.fnt", "GJ_button_01.png", 0.4f);
+        auto trajBtn = CCMenuItemExt::createSpriteExtra(trajSprite, [](CCMenuItemSpriteExtra*) {
+            TrajectorySettingsPopup::create()->show();
+        });
+        trajBtn->setPosition({COL_X[1] + 15.f, trajBtnY});
+        menu->addChild(trajBtn);
     }
 
     selectTab(0);
