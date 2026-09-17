@@ -2,6 +2,7 @@
 #include <Geode/modify/LevelEditorLayer.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
 #include "ShowHitboxes.hpp"
+#include "HitboxColors.hpp"
 #include "RingBuffer.hpp"
 #include <array>
 #include <cmath>
@@ -9,17 +10,11 @@
 using namespace geode::prelude;
 
 namespace {
-    constexpr ccColor4F DANGER_COLOR       = {1.f, 0.f, 0.f, 1.f};
-    constexpr ccColor4F SOLID_COLOR        = {0.f, 0.f, 1.f, 1.f};
-    constexpr ccColor4F PASSABLE_COLOR     = {0.f, 1.f, 1.f, 1.f};
-    constexpr ccColor4F TRIGGER_COLOR      = {1.f, 0.f, 1.f, 1.f};
-    constexpr ccColor4F OTHER_COLOR        = {0.f, 1.f, 0.f, 1.f};
-    constexpr ccColor4F PLAYER_COLOR       = {1.f, 0.f, 0.f, 1.f};
-    constexpr ccColor4F PLAYER_INNER_COLOR = {0.f, 0.f, 1.f, 1.f};
-    constexpr ccColor4F TRAIL_COLOR        = {1.f, 1.f, 0.f, 1.f};
-    constexpr ccColor4F TRAIL_INNER_COLOR  = {0.f, 0.f, 1.f, 1.f};
-    constexpr float BORDER_WIDTH = 0.4f;
-    constexpr float FILL_ALPHA   = 0.4f;
+    // Trail colors are separate from the customizable category colors -
+    // not part of the color-picker feature set, kept fixed for now.
+    constexpr ccColor4F TRAIL_COLOR       = {1.f, 1.f, 0.f, 1.f};
+    constexpr ccColor4F TRAIL_INNER_COLOR = {1.f, 0.f, 0.f, 1.f};
+    constexpr float TRAIL_BORDER_WIDTH = 0.25f;
 
     // How long hitboxes/trail stay visible after death when "Only On
     // Death" is enabled.
@@ -39,10 +34,11 @@ namespace {
         return {c.r, c.g, c.b, a};
     }
 
-    // Respects the Fill Hitboxes toggle - fully transparent fill when off,
-    // so only the outline shows.
-    ccColor4F getFillColor(ccColor4F c) {
-        return ShowHitboxes::fillEnabled() ? withAlpha(c, FILL_ALPHA) : ccColor4F{0.f, 0.f, 0.f, 0.f};
+    // Respects both the Fill Hitboxes toggle and the global fill opacity
+    // slider - fully transparent when fill is off.
+    ccColor4F fillFor(HitboxColors::Category cat) {
+        if (!ShowHitboxes::fillEnabled()) return {0.f, 0.f, 0.f, 0.f};
+        return withAlpha(HitboxColors::getFillColor(cat), HitboxColors::getGlobalFillOpacity());
     }
 
     // Parents to the same node the game's OWN internal debug-draw node uses,
@@ -107,6 +103,22 @@ namespace {
         node->drawPolygon(corners.data(), 4, fill, border, borderColor);
     }
 
+    // One category, fully customizable: fill color/opacity, border color,
+    // and border thickness are all read independently.
+    void drawCategoryBox(CCDrawNode* node, const CCRect& rect, float rotation, HitboxColors::Category cat) {
+        drawObjectBox(node, rect, rotation,
+            fillFor(cat),
+            HitboxColors::getBorderThickness(cat),
+            HitboxColors::getBorderColor(cat));
+    }
+
+    void drawCategoryCircle(CCDrawNode* node, const CCPoint& pos, float radius, HitboxColors::Category cat) {
+        node->drawCircle(pos, radius,
+            fillFor(cat),
+            HitboxColors::getBorderThickness(cat),
+            HitboxColors::getBorderColor(cat), 16);
+    }
+
     void drawObjectHitbox(GJBaseGameLayer* layer, CCDrawNode* drawNode, GameObject* obj) {
         if (!obj) return;
         if (obj->m_objectType == GameObjectType::Decoration || !obj->m_isActivated || obj->m_isGroupDisabled)
@@ -117,9 +129,9 @@ namespace {
 
         switch (obj->m_objectType) {
             case GameObjectType::Solid: {
-                bool passable = obj->m_isPassable;
-                auto color = passable ? PASSABLE_COLOR : SOLID_COLOR;
-                drawObjectBox(drawNode, obj->getObjectRect(), rotation, getFillColor(color), BORDER_WIDTH, color);
+                // Passable and regular solids share the Solid category's
+                // colors - the customization list doesn't split them out.
+                drawCategoryBox(drawNode, obj->getObjectRect(), rotation, HitboxColors::Category::Solid);
                 break;
             }
             case GameObjectType::Hazard:
@@ -127,25 +139,28 @@ namespace {
                 if (obj == layer->m_anticheatSpike) break;
                 float radius = std::max(obj->m_scaleX, obj->m_scaleY) * obj->m_objectRadius;
                 if (radius > 0.f) {
-                    drawNode->drawCircle(obj->getPosition(), radius, getFillColor(DANGER_COLOR), BORDER_WIDTH, DANGER_COLOR, 16);
+                    drawCategoryCircle(drawNode, obj->getPosition(), radius, HitboxColors::Category::Hazard);
                 } else {
-                    drawObjectBox(drawNode, obj->getObjectRect(), rotation, getFillColor(DANGER_COLOR), BORDER_WIDTH, DANGER_COLOR);
+                    drawCategoryBox(drawNode, obj->getObjectRect(), rotation, HitboxColors::Category::Hazard);
                 }
                 break;
             }
             case GameObjectType::CollisionObject:
                 break;
             default: {
+                // Orbs, pads, triggers, portals - everything else that
+                // isn't a plain solid or hazard - share the Interactive
+                // category, matching the requested grouping.
                 bool isSpeedPortal = obj->m_objectID == 200 || obj->m_objectID == 201 ||
                                       obj->m_objectID == 202 || obj->m_objectID == 203 ||
                                       obj->m_objectID == 1334;
                 if (obj->m_objectType == GameObjectType::Modifier && !isSpeedPortal) {
                     if (static_cast<EffectGameObject*>(obj)->m_isTouchTriggered) {
-                        drawObjectBox(drawNode, obj->getObjectRect(), rotation, getFillColor(TRIGGER_COLOR), BORDER_WIDTH, TRIGGER_COLOR);
+                        drawCategoryBox(drawNode, obj->getObjectRect(), rotation, HitboxColors::Category::Interactive);
                     }
                     break;
                 }
-                drawObjectBox(drawNode, obj->getObjectRect(), rotation, getFillColor(OTHER_COLOR), BORDER_WIDTH, OTHER_COLOR);
+                drawCategoryBox(drawNode, obj->getObjectRect(), rotation, HitboxColors::Category::Interactive);
                 break;
             }
         }
@@ -154,10 +169,14 @@ namespace {
     // Player hitbox intentionally stays axis-aligned even during visual
     // spin animations - GD's actual player collision doesn't rotate with
     // the sprite, so rotating this box would misrepresent the real hitbox.
-    void drawPlayerHitbox(CCDrawNode* drawNode, PlayerObject* player) {
+    // Inner hitbox reuses the same category's colors, drawn slightly
+    // smaller, matching the previous "main + inner" look.
+    void drawPlayerHitbox(CCDrawNode* drawNode, PlayerObject* player, HitboxColors::Category cat) {
         if (!player) return;
-        drawRectOutline(drawNode, player->getObjectRect(), getFillColor(PLAYER_COLOR), BORDER_WIDTH, PLAYER_COLOR);
-        drawRectOutline(drawNode, player->getObjectRect(0.3f, 0.3f), getFillColor(PLAYER_INNER_COLOR), BORDER_WIDTH, PLAYER_INNER_COLOR);
+        drawRectOutline(drawNode, player->getObjectRect(),
+            fillFor(cat), HitboxColors::getBorderThickness(cat), HitboxColors::getBorderColor(cat));
+        drawRectOutline(drawNode, player->getObjectRect(0.3f, 0.3f),
+            fillFor(cat), HitboxColors::getBorderThickness(cat), HitboxColors::getBorderColor(cat));
     }
 
     void renderTrailBuffer(CCDrawNode* drawNode, const RingBuffer<CCRect>& trail, ccColor4F color) {
@@ -168,7 +187,7 @@ namespace {
         size_t index = 0;
         trail.for_each([&](const CCRect& rect) {
             float alpha = fade ? (static_cast<float>(index + 1) / static_cast<float>(count)) : 1.f;
-            drawRectOutline(drawNode, rect, {0.f, 0.f, 0.f, 0.f}, BORDER_WIDTH, withAlpha(color, alpha));
+            drawRectOutline(drawNode, rect, {0.f, 0.f, 0.f, 0.f}, TRAIL_BORDER_WIDTH, withAlpha(color, alpha));
             index++;
         });
     }
@@ -204,9 +223,9 @@ namespace {
             }
         }
 
-        drawPlayerHitbox(drawNode, layer->m_player1);
+        drawPlayerHitbox(drawNode, layer->m_player1, HitboxColors::Category::Player1);
         if (layer->m_gameState.m_isDualMode) {
-            drawPlayerHitbox(drawNode, layer->m_player2);
+            drawPlayerHitbox(drawNode, layer->m_player2, HitboxColors::Category::Player2);
         }
 
         if (ShowHitboxes::trailEnabled()) {
@@ -311,4 +330,3 @@ class $modify(MyShowHitboxesTrailRecorder, GJBaseGameLayer) {
         }
     }
 };
-
