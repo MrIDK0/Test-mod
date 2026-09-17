@@ -9,7 +9,7 @@ using namespace geode::prelude;
 // spike at every trail point - change to whatever object ID you actually
 // want (verify it in the editor's object info panel).
 namespace MacroBuffConfig {
-    constexpr int SECOND_OBJECT_ID = 1817;
+    constexpr int SECOND_OBJECT_ID = 103;
 }
 
 // Editor-only helper: while playtesting in the level editor, this tracks a
@@ -104,7 +104,7 @@ class $modify(MacroBuffGJBaseGameLayer, GJBaseGameLayer) {
         if (m_player1->m_isOnGround) return;
 
         m_fields->frame++;
-        if (m_fields->frame < 2) {
+        if (m_fields->frame < 1) {
             return;
         }
         m_fields->frame = 0;
