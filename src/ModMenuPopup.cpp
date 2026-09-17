@@ -240,7 +240,10 @@ bool ModMenuPopup::init() {
         page->addChild(input);
 
         // Show Trajectory toggle + its own settings sub-popup
-        addToggle(page, menu, "trajectory-enabled", "Show Trajectory", 2, 0);
+
+        addToggle(page, m_buttonMenu, "trajectory-enabled", "Show Trajectory", 2, 0);
+m_buttonMenu->addChild(trajBtn);
+
 
         float trajBtnY = GRID_TOP_Y - 2.f * ROW_HEIGHT;
         auto trajSprite = ButtonSprite::create("Settings...", "goldFont.fnt", "GJ_button_01.png", 0.4f);
