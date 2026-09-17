@@ -1,6 +1,7 @@
 #include "ModMenuPopup.hpp"
 #include "SpeedHack.hpp"
 #include "ShowPosition.hpp"
+#include "HitboxColorsPopup.hpp"
 #include <sstream>
 #include <iomanip>
 
@@ -205,6 +206,15 @@ bool ModMenuPopup::init() {
         // Fill Hitboxes / Only On Death - their own row below Trail Length
         addToggle(page, menu, "showhitboxes-fill-enabled", "Fill Hitboxes", 4, 0);
         addToggle(page, menu, "showhitboxes-onlyondeath-enabled", "Only On Death", 4, 1);
+
+        // Opens the dedicated per-category color/border/opacity sub-popup
+        float colorsY = GRID_TOP_Y - 5.f * ROW_HEIGHT;
+        auto colorsSprite = ButtonSprite::create("Hitbox Colors...", "goldFont.fnt", "GJ_button_01.png", 0.5f);
+        auto colorsBtn = CCMenuItemExt::createSpriteExtra(colorsSprite, [](CCMenuItemSpriteExtra*) {
+            HitboxColorsPopup::create()->show();
+        });
+        colorsBtn->setPosition({(COL_X[0] + COL_X[1]) / 2.f + 15.f, colorsY});
+        menu->addChild(colorsBtn);
     }
 
     // --- Level tab: how many frames to hold the click for ---
@@ -288,4 +298,3 @@ ModMenuPopup* ModMenuPopup::create() {
     delete ret;
     return nullptr;
 }
-
