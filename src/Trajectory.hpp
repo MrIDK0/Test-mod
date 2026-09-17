@@ -15,7 +15,7 @@ namespace Trajectory {
         int iterations = 150;
         try { iterations = std::stoi(valueStr); } catch (...) { iterations = 150; }
         if (iterations < 10) iterations = 10;
-        if (iterations > 2000) iterations = 2000; // sane guard - this many
+        if (iterations > 5000000) iterations = 5000000; // sane guard - this many
                                                     // real update() calls
                                                     // per real frame adds up
         return iterations;
