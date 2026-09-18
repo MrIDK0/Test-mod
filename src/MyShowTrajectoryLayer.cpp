@@ -7,19 +7,14 @@ using namespace geode::prelude;
 
 // Core technique: rather than reimplementing GD's physics formulas
 // ourselves (which would mean guessing at exact, undocumented per-mode
-// constants), this spawns a real, invisible PlayerObject, copies the real
-// player's live state onto it, then repeatedly calls the game's OWN real
-// update() and checkCollisions() functions to fast-forward. The prediction
-// is exactly as accurate as GD's actual physics, because it IS GD's actual
-// physics - just run ahead on a throwaway copy.
-//
-// A fresh dummy is created and destroyed for every single simulation run,
-// rather than reused across frames - reuse caused it to freeze after the
-// first run, almost certainly because a predicted death leaves some
-// internal "is dead"-style state on the object that a plain state-copy
-// doesn't reliably clear. A brand new object every time sidesteps that
-// entirely instead of chasing down the exact flag.
+// constants), this spawns real, invisible PlayerObject instances, copies
+// the real player's live state onto them, then repeatedly calls the game's
+// OWN real update() and checkCollisions() functions to fast-forward. The
+// prediction is exactly as accurate as GD's actual physics, because it IS
+// GD's actual physics - just run ahead on a throwaway copy.
 namespace {
+    PlayerObject* dummyJump = nullptr;
+    PlayerObject* dummyNormal = nullptr;
     bool isSimulating = false;
     float lastRealDt = 1.f / 60.f;
     CCDrawNode* trajectoryDrawNode = nullptr;
@@ -29,7 +24,7 @@ namespace {
         if (!parent) return nullptr;
         auto node = CCDrawNode::create();
         node->setBlendFunc({GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA});
-        node->setZOrder(99999);
+        node->setZOrder(9999);
         node->setID("trajectory-node"_spr);
         parent->addChild(node);
         return node;
@@ -46,6 +41,17 @@ namespace {
             }
         }
         return dummy;
+    }
+
+    // The actual bug: these 4 arrays accumulate collision entries during
+    // checkCollisions() and were never being reset between simulation runs,
+    // so stale data from one predicted path corrupted the next one.
+    void clearCollisionLogs(PlayerObject* player) {
+        if (!player) return;
+        if (player->m_collisionLogTop)    player->m_collisionLogTop->removeAllObjects();
+        if (player->m_collisionLogBottom) player->m_collisionLogBottom->removeAllObjects();
+        if (player->m_collisionLogLeft)   player->m_collisionLogLeft->removeAllObjects();
+        if (player->m_collisionLogRight)  player->m_collisionLogRight->removeAllObjects();
     }
 
     // Copies the live player's state onto the throwaway dummy. copyAttributes
@@ -70,13 +76,11 @@ namespace {
         to->m_isSpider     = from->m_isSpider;
     }
 
-    void simulatePath(PlayLayer* layer, PlayerObject* source, bool holdJump) {
-        if (!layer || !source || !trajectoryDrawNode) return;
-
-        auto sim = createDummyPlayer(layer);
-        if (!sim) return;
+    void simulatePath(PlayLayer* layer, PlayerObject* sim, PlayerObject* source, bool holdJump) {
+        if (!layer || !sim || !source || !trajectoryDrawNode) return;
 
         copyPlayerState(source, sim);
+        clearCollisionLogs(sim);
         sim->setVisible(false);
 
         if (holdJump) {
@@ -102,25 +106,23 @@ namespace {
                 break;
             }
         }
-
-        sim->removeFromParentAndCleanup(true);
     }
 
     void runTrajectorySimulation(PlayLayer* layer) {
         if (!trajectoryDrawNode) return;
         trajectoryDrawNode->clear();
 
-        if (!Trajectory::isEnabled()) return;
+        if (!Trajectory::isEnabled() || !dummyJump || !dummyNormal) return;
 
         isSimulating = true;
 
         if (layer->m_player1) {
-            simulatePath(layer, layer->m_player1, true);
-            simulatePath(layer, layer->m_player1, false);
+            simulatePath(layer, dummyJump, layer->m_player1, true);
+            simulatePath(layer, dummyNormal, layer->m_player1, false);
         }
         if (layer->m_gameState.m_isDualMode && layer->m_player2) {
-            simulatePath(layer, layer->m_player2, true);
-            simulatePath(layer, layer->m_player2, false);
+            simulatePath(layer, dummyJump, layer->m_player2, true);
+            simulatePath(layer, dummyNormal, layer->m_player2, false);
         }
 
         isSimulating = false;
@@ -131,6 +133,8 @@ class $modify(MyTrajectoryPlayLayer, PlayLayer) {
     void createObjectsFromSetupFinished() {
         PlayLayer::createObjectsFromSetupFinished();
         trajectoryDrawNode = createTrajectoryDrawNode(this, m_debugDrawNode);
+        dummyJump = createDummyPlayer(this);
+        dummyNormal = createDummyPlayer(this);
     }
 
     void updateVisibility(float dt) {
@@ -141,6 +145,8 @@ class $modify(MyTrajectoryPlayLayer, PlayLayer) {
     }
 
     void resetLevel() {
+        dummyJump = nullptr;
+        dummyNormal = nullptr;
         trajectoryDrawNode = nullptr;
         isSimulating = false;
         PlayLayer::resetLevel();
